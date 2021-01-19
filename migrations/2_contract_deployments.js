@@ -1,28 +1,28 @@
 const fs = require('fs');
 
-const AccountContract = artifacts.require("./Accounts.sol");
+const NOMContract = artifacts.require("./ERC20NOM.sol");
 
 module.exports = function(deployer) {
   deployer.then( async() => {
-    await deployer.deploy(AccountContract);
-    const accountContractInstance = await AccountContract.deployed()
+    await deployer.deploy(NOMContract);
+    const accountContractInstance = await NOMContract.deployed()
     console.log('\n*************************************************************************\n')
-    console.log(`Account Contract Address: ${accountContractInstance.address}`)
+    console.log(`NOM ERC20 Contract Address: ${NOMContractInstance.address}`)
     console.log('\n*************************************************************************\n')
       
     const contAddrs = {
-      account: accountContractInstance.address,
+      NOMERC20: NOMContractInstance.address,
     }
 
     const contAddrsJSON = JSON.stringify(contAddrs)
     
-    fs.writeFile('../hsocial/src/loom/havenAddrs.json', contAddrsJSON, function(err) {
+    fs.writeFile('NOMAddrs.json', contAddrsJSON, function(err) {
       if (err) {
           console.log(err);
       }
     });
     console.log('\n\n*************************************************************************\n')
-    console.log(`Contract address saved to hsocial`)
+    console.log(`Contract address saved to json`)
     console.log('\n*************************************************************************\n')
 
   });
