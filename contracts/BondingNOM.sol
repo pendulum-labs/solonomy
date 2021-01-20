@@ -64,10 +64,14 @@ contract BondingNOM {
         uint256 topSupply = bottomSupply + buyAmount;
         return  f64toTok(
                     abdk.mul(
+                        // a/3
                         abdk.divu(a, uint256(a)),
+                        // ((NomSold_Top/a)^3 - (numNOMSold_Bot/a)^3)
                         abdk.sub(
+                            // (NomSold_Top/a)^3
                             abdk.pow(abdk.divu(topSupply, a), uint256(3)),
-                            abdk.pow(absk.divu(bottomSupply, a), uint256(3))
+                            // (NomSold_Bot/a)^3
+                            abdk.pow(abdk.divu(bottomSupply, a), uint256(3))
                         )
                     )
 
