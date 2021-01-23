@@ -95,9 +95,9 @@ contract BondingNOM {
     * number.
     *
     * @param x unsigned 256-bit integer number
-    * @return unsigned 128-bit integer number
+    * @return unsigned 256-bit integer number
     */
-    function cubrtu (uint256 x) private pure returns (uint128) {
+    function cubrtu (uint256 x) private pure returns (uint256) {
         if (x == 0) return 0;
         else {
         uint256 xx = x;
@@ -119,7 +119,7 @@ contract BondingNOM {
         r = (x/(r**2) + 2*r)/3;
         r = (x/(r**2) + 2*r)/3; // Seven iterations should be enough
         uint256 r1 = x / r;
-        return uint128 (r < r1 ? r : r1);
+        return uint256 (r < r1 ? r : r1);
         }
     }
 
@@ -134,19 +134,44 @@ contract BondingNOM {
     // Output
     // uint256: amount of ETH needed in Wei or ETH 18 decimal
     function buyQuoteETH(uint256 amountETH) returns(uint256) {
-        uint256 bottomPrice = safeMath.add(bCurvePrice, 
-                                           safeMath.div(bondCurvePrice(), uint256(100))
-                                          );
-        uint256 bottomSupply = supplyAtPrice(bottomPrice);
-        return f64toTok(
-            abdk64.add(
-                abdk64.mulu(abdk64.divu(amountETH, a), uint256(3))
-            )
-        )
+        uint256 priceBot = safeMath.add(
+                                bCurvePrice, 
+                                safeMath.div(bondCurvePrice(), uint256(100))
+                            );
+        
+        uint256 supplyBot = supplyAtPrice(priceBot);
 
+        uint256 supplyTop = // (3*ETH/a + (numNOMSold_Bot/a)^3)^(1/3)
+                            cubrtu(
+                                f64ToTok(
+                                    // 3*ETH/a + (numNOMSold_Bot/a)^3
+                                    abdk64.add(
+                                        // 3*ETH/a
+                                        abdk64.mul(
+                                            // ETH/a
+                                            abdk64.div(
+                                                TokToF64(amountETH), 
+                                                abdk64.fromInt(uint256(a))
+                                            ),
+                                            abdk64.fromInt(uint256(3))
+                                        ),
+                                        // (numNOMSold_Bot/a)^3
+                                        abdk64.pow(
+                                            // numNOMSold_Bot/a
+                                            abdk64.divu(supplyBot, a),
+                                            uint256(3)
+                                        )
+                                    )
+                                )
+                            )
+        return supplyTop - supplyBot
     }
 
-
+    function buyNOM() public payable {
+        uint256 nomBuyAmount = buyQuoteETH(msg.value)
+        numNOMSold = safeMath.sub(numNomSold, nomBuyAmount)
+        // Add ERC Token send to msg.sender the amount of NOM
+    }
 }
 
 
