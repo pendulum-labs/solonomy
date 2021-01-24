@@ -10,6 +10,7 @@ contract BondingNOM {
     uint256 public bCurvePrice;
     uint256 public ETHearned;
     uint256 public ETHDispensed;
+    IERC20 private _token;
 
     
     uint128 private constant MAX_64x64 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
@@ -22,6 +23,10 @@ contract BondingNOM {
 
     // Define the Bonding Curve functions
     uint256 public a = 100000000;
+
+    constructor (NOMERC20 token) public {
+        _token = token;
+    }
 
     // Conversion from token to 64x64
     function TokToF64(uint256 token) public view returns(int128) {
@@ -171,6 +176,11 @@ contract BondingNOM {
         uint256 nomBuyAmount = buyQuoteETH(msg.value)
         numNOMSold = safeMath.sub(numNomSold, nomBuyAmount)
         // Add ERC Token send to msg.sender the amount of NOM
+    }
+
+    function sellNOM(uint256 amount) external {
+        
+        _token.msg.sender.transfer()
     }
 }
 

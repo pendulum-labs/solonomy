@@ -10,6 +10,7 @@ contract ERC20NOM is ERC20Burnable {
     uint8 public decimals = 18;
 
     // 100 million initial supply
+    // This will be sent to the Bonding Contract
     uint256 public constant INITIAL_SUPPLY = 100000000;
 
     constructor () public {
