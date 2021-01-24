@@ -5,12 +5,18 @@ import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol" as safeMath;
 import "abdk-libraries-solidity/ABDKMath64x64.sol" as abdk64;
 
+interface ERC20Token {
+  function allowance(address, address) external returns (uint256);
+  function balanceOf(address) external returns (uint256);
+  function transferFrom(address, address, uint) external returns (bool);
+}
+
 contract BondingNOM {
     uint256 public numNOMSold;
     uint256 public bCurvePrice;
     uint256 public ETHearned;
     uint256 public ETHDispensed;
-    IERC20 private _token;
+    ERC20Token nc; // NOM contract (nc)
 
     
     uint128 private constant MAX_64x64 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
@@ -135,9 +141,9 @@ contract BondingNOM {
     // 3. Subtract supply bottom from top to get #NOM for ETH
     // Parameters:
     // Input
-    // uint256 buyAmount: amount of NOM to be purchased in 18 decimal
+    // uint256 amountETH: amount of ETH in 18 decimal
     // Output
-    // uint256: amount of ETH needed in Wei or ETH 18 decimal
+    // uint256: amount of NOM in 18 decimal
     function buyQuoteETH(uint256 amountETH) returns(uint256) {
         uint256 priceBot = safeMath.add(
                                 bCurvePrice, 
@@ -178,9 +184,48 @@ contract BondingNOM {
         // Add ERC Token send to msg.sender the amount of NOM
     }
 
-    function sellNOM(uint256 amount) external {
+    // Returns Sell Quote: NOM for ETH (Dec 18)
+    // 1. Determine supply top: BondcurvePrice - 10% = Top Sale Price
+    // 2. Integrate over curve to find ETH
+    // ETH = a/3((numNomSold_Top/a)^3 - (numNOMSold_Bot/a)^3)
+    // 3. Subtract supply bottom from top to get #NOM for ETH
+    // Parameters:
+    // Input
+    // uint256 amountNOM: amount of NOM to be sold (18 decimal)
+    // Output
+    // uint256: amount of ETH given in Wei or ETH (18 decimal)
+    function sellQuoteNOM(uint256 amountNOM) returns(uint256) {
+        uint256 priceTop = safeMath.sub(
+                                bCurvePrice, 
+                                safeMath.div(bCurvePrice, uint256(100))
+                            );
         
-        _token.msg.sender.transfer()
+        uint256 supplyTop = supplyAtPrice(priceBot);
+
+        uint256 supplyBot = supplyTop - amountNOM
+
+
+        return f64toTok(
+                    abdk.mul(
+                        // a/3
+                        abdk.divu(a, uint256(a)),
+                        // ((NomSold_Top/a)^3 - (numNOMSold_Bot/a)^3)
+                        abdk.sub(
+                            // (NomSold_Top/a)^3
+                            abdk.pow(abdk.divu(supplyTop, a), uint256(3)),
+                            // (NomSold_Bot/a)^3
+                            abdk.pow(abdk.divu(supplyBot, a), uint256(3))
+                        )
+                    )
+
+                );
+    }
+
+    function sellNOM(uint256 amount) external {
+        require(kc.allowance(_acctAddr, address(this)) >= value, "sender has not enough allowance");
+        
+        nc.transferFrom(_acctAddr, address(this), value);
+
     }
 }
 
