@@ -69,6 +69,27 @@ contract BondingNOM {
                     )
                 )*fromUINT(a));
     }
+
+    // NOM supply range to ETH
+    // Integrate over curve to get amount of ETH needed to buy amount of NOM
+    // ETH = a/3((numNomSold_Top/a)^3 - (numNOMSold_Bot/a)^3)
+    function NOMsupplyETH(uint256 supplyTop, uint256 supplyBot) returns(uint256) {
+        return f64toTok(
+            abdk.mul(
+            // a/3
+                abdk.divu(a, uint256(3)),
+                    // ((NomSold_Top/a)^3 - (numNOMSold_Bot/a)^3)
+                    abdk.sub(
+                        // (NomSold_Top/a)^3
+                        abdk.pow(abdk.divu(supplyTop, a), uint256(3)),
+                        // (NomSold_Bot/a)^3
+                        abdk.pow(abdk.divu(supplyBot, a), uint256(3))
+                    )
+                )
+
+        );
+    }
+                
     
     // Returns Buy Quote for a particular amount of NOM (Dec 18) in ETH (Dec 18)
     // 1. Determine supply range based on spread and current curve price based on numNOMSold
@@ -80,25 +101,13 @@ contract BondingNOM {
     // Output
     // uint256: amount of ETH needed in Wei or ETH 18 decimal
     function buyQuoteNOM(uint256 amountNOM) returns(uint256) {
-        uint256 bottomPrice = safeMath.add(bCurvePrice, 
-                                           safeMath.div(bondCurvePrice(), uint256(100))
-                                          );
-        uint256 bottomSupply = supplyAtPrice(bottomPrice);
-        uint256 topSupply = bottomSupply + amountNOM;
-        return  f64toTok(
-                    abdk.mul(
-                        // a/3
-                        abdk.divu(a, uint256(a)),
-                        // ((NomSold_Top/a)^3 - (numNOMSold_Bot/a)^3)
-                        abdk.sub(
-                            // (NomSold_Top/a)^3
-                            abdk.pow(abdk.divu(topSupply, a), uint256(3)),
-                            // (NomSold_Bot/a)^3
-                            abdk.pow(abdk.divu(bottomSupply, a), uint256(3))
-                        )
-                    )
-
-                );
+        uint256 priceBot = safeMath.add(
+                                        bCurvePrice, 
+                                        safeMath.div(bCurvePrice, uint256(100))
+                                    );
+        uint256 supplyBot = supplyAtPrice(priceBot);
+        uint256 supplyTop = supplyBot + amountNOM;
+        return  NOMsupplyETH(supplyTop, supplyBot)
     }
 
     /**
@@ -179,9 +188,10 @@ contract BondingNOM {
     }
 
     function buyNOM() public payable {
-        uint256 nomBuyAmount = buyQuoteETH(msg.value)
-        numNOMSold = safeMath.sub(numNomSold, nomBuyAmount)
-        // Add ERC Token send to msg.sender the amount of NOM
+        require(msg.value > 0, "No ETH");
+        uint256 amountNOM = buyQuoteETH(msg.value);
+        numNOMSold = safeMath.sub(numNomSold, amountNOM);
+        nc.transfer(msg.sender, address(this), amountNOM);
     }
 
     // Returns Sell Quote: NOM for ETH (Dec 18)
@@ -193,39 +203,22 @@ contract BondingNOM {
     // Input
     // uint256 amountNOM: amount of NOM to be sold (18 decimal)
     // Output
-    // uint256: amount of ETH given in Wei or ETH (18 decimal)
-    function sellQuoteNOM(uint256 amountNOM) returns(uint256) {
+    // uint256: amount of ETH paid in Wei or ETH (18 decimal)
+    function sellQuoteNOM(uint256 amountNOM) public view returns(uint256) {
         uint256 priceTop = safeMath.sub(
                                 bCurvePrice, 
                                 safeMath.div(bCurvePrice, uint256(100))
                             );
-        
         uint256 supplyTop = supplyAtPrice(priceBot);
-
-        uint256 supplyBot = supplyTop - amountNOM
-
-
-        return f64toTok(
-                    abdk.mul(
-                        // a/3
-                        abdk.divu(a, uint256(a)),
-                        // ((NomSold_Top/a)^3 - (numNOMSold_Bot/a)^3)
-                        abdk.sub(
-                            // (NomSold_Top/a)^3
-                            abdk.pow(abdk.divu(supplyTop, a), uint256(3)),
-                            // (NomSold_Bot/a)^3
-                            abdk.pow(abdk.divu(supplyBot, a), uint256(3))
-                        )
-                    )
-
-                );
+        uint256 supplyBot = supplyTop - amountNOM;
+        return NOMsupplyETH(supplyTop, supplyBot)
     }
 
-    function sellNOM(uint256 amount) external {
-        require(kc.allowance(_acctAddr, address(this)) >= value, "sender has not enough allowance");
-        
-        nc.transferFrom(_acctAddr, address(this), value);
-
+    function sellNOM(uint256 amountNOM) external {
+        require(nc.allowance(msg.sender, address(this)) >= amountNOM, "sender has not enough allowance");
+        uint256 paymentETH = sellQuoteNOM(amountNOM);
+        nc.transferFrom(msg.sender, address(this), amountNOM);
+        address(msg.sender).transfer(paymentETH)
     }
 }
 
