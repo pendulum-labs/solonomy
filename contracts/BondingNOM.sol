@@ -12,30 +12,35 @@ interface ERC20Token {
   function transferFrom(address, address, uint) external returns (bool);
 }
 
+interface GravityBridge {
+
+}
+
 contract BondingNOM is Ownable {
     ERC20Token nc; // NOM contract (nc)
+    GravityBridge gb; // Gravity Bridge
 
     // Address of the nc (NOM ERC20 Contract)
     address public NOMTokenContract
 
     // @dev Access modifier for Gravity-only functionality
     modifier onlyGr() {
-        require(msg.sender == gravityAddress, "not the NR Server");
+        require(msg.sender == gravityAddress, "not the gravity contract");
         _;
     }
     
-    uint256 public supplyNOM;
+    uint256 public supplyNOM = 0;
+    uint256 public burnedNOM = 0;
     uint256 public priceBondCurve;
-    uint256 public ETHearned;
-    uint256 public ETHDispensed;
     uint128 private constant MAX_64x64 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
     uint8 public decimals = 18;
     // Bonding Curve parameter
     uint256 public a = 100000000;
 
-    constructor (address NOMContAddr) public {
+    constructor (address NOMContAddr, address gBridgeContAddr) public {
         // Add in the NOM ERC20 contract address
         nc = ERC20Token(NOMContAddr);
+        gb = GravityBridge(gBridgeContAddr)
     }
 
     // Conversion from token to 64x64
@@ -193,18 +198,10 @@ contract BondingNOM is Ownable {
 
     function buyNOM() public payable {
         require(msg.value > 0, "No ETH");
-        uint256 priceBot = safeMath.add(
-                                priceBondCurve, 
-                                safeMath.div(priceBondCurve, uint256(100))
-                            );
-        
-        uint256 supplyBot = supplyAtPrice(priceBot);
         uint256 amountNOM = buyQuoteETH(msg.value);
 
         // Update persistent contract state variables
         
-        // Add spread to earned account
-        ETHearned = NOMsupplyETH(supplyBot, supplyNOM);
         // Update total supply released by Bonding Curve
         supplyNOM = safeMath.sub(supplyNOM, amountNOM);
         // Update current bond curve price
@@ -242,15 +239,13 @@ contract BondingNOM is Ownable {
                                 safeMath.div(priceBondCurve, uint256(100))
                             );
         uint256 supplyTop = supplyAtPrice(priceBot);
-        uint256 supplyBot = supplyTop - amountNOM;
+        uint256 supplyBot = safeMath.sub(supplyTop, amountNOM);
         uint256 paymentETH = NOMsupplyETH(supplyTop, supplyBot);
 
         // Transfer NOM to contract
         nc.transferFrom(msg.sender, address(this), amountNOM);
-        // Update persistent contract state variables
         
-        // Add spread to earned account
-        ETHearned += NOMsupplyETH(supplyNOM, supplyTop);
+        // Update persistent contract state variables
         // Update total supply released by Bonding Curve
         supplyNOM = safeMath.sub(supplyNOM, amountNOM);
         // Update current bond curve price
@@ -260,6 +255,18 @@ contract BondingNOM is Ownable {
         address(msg.sender).transfer(paymentETH)
     }
 
+    function withdraw() public onlyOwner returns(bool success) {
+        // Determine available ETH for payment
+        // 1. Calculate amount ETH to cover all current NOM outstanding
+        //    based on bonding curve integration.
+        uint256 lockedETH = NOMsupplyETH(supplyNOM, burnedNOM);
+        // 2. Subtraction lockedETH from Contract Balance to get amount 
+        //    available for withdrawal.
+        uint256 paymentETH = safeMath.sub(address(this).balance, lockedETH);
+        // Transfer ETH to Owner
+        address(msg.sender).transfer(paymentETH);
+        return true;
+    }
 
 }
 
