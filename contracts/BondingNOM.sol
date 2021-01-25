@@ -3,6 +3,7 @@ pragma solidity 0.7.6;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol" as safeMath;
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "abdk-libraries-solidity/ABDKMath64x64.sol" as abdk64;
 
 interface ERC20Token {
@@ -11,27 +12,30 @@ interface ERC20Token {
   function transferFrom(address, address, uint) external returns (bool);
 }
 
-contract BondingNOM {
-    uint256 public numNOMSold;
-    uint256 public bCurvePrice;
-    uint256 public ETHearned;
-    uint256 public ETHDispensed;
+contract BondingNOM is Ownable {
     ERC20Token nc; // NOM contract (nc)
 
+    // Address of the nc (NOM ERC20 Contract)
+    address public NOMTokenContract
+
+    // @dev Access modifier for Gravity-only functionality
+    modifier onlyGr() {
+        require(msg.sender == gravityAddress, "not the NR Server");
+        _;
+    }
     
+    uint256 public supplyNOM;
+    uint256 public priceBondCurve;
+    uint256 public ETHearned;
+    uint256 public ETHDispensed;
     uint128 private constant MAX_64x64 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
-
-    // Token decimals
     uint8 public decimals = 18;
-    // Fixed point precision
-    uint16 public prec = 20;
-    
-
-    // Define the Bonding Curve functions
+    // Bonding Curve parameter
     uint256 public a = 100000000;
 
-    constructor (NOMERC20 token) public {
-        _token = token;
+    constructor (address NOMContAddr) public {
+        // Add in the NOM ERC20 contract address
+        nc = ERC20Token(NOMContAddr);
     }
 
     // Conversion from token to 64x64
@@ -47,11 +51,11 @@ contract BondingNOM {
 
     // ETH/NOM = (#NOM Sold/(a*decimals))^2
     // At 18 decimal precision in ETH
-    function bondCurvePrice() public view returns(uint256) {
+    function priceBCurve() public view returns(uint256) {
         return  f64ToTok(
                     abdk.pow(
                         // #NOM Sold/(a*decimals)
-                        abdk.divu(numNOMSold,
+                        abdk.divu(supplyNOM,
                             // (a*decimals)
                             safeMath.mul(a, uint256(decimals))),
                         // ()^2
@@ -72,13 +76,13 @@ contract BondingNOM {
 
     // NOM supply range to ETH
     // Integrate over curve to get amount of ETH needed to buy amount of NOM
-    // ETH = a/3((numNomSold_Top/a)^3 - (numNOMSold_Bot/a)^3)
+    // ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)
     function NOMsupplyETH(uint256 supplyTop, uint256 supplyBot) returns(uint256) {
         return f64toTok(
             abdk.mul(
             // a/3
                 abdk.divu(a, uint256(3)),
-                    // ((NomSold_Top/a)^3 - (numNOMSold_Bot/a)^3)
+                    // ((NomSold_Top/a)^3 - (supplyNOM_Bot/a)^3)
                     abdk.sub(
                         // (NomSold_Top/a)^3
                         abdk.pow(abdk.divu(supplyTop, a), uint256(3)),
@@ -92,9 +96,9 @@ contract BondingNOM {
                 
     
     // Returns Buy Quote for a particular amount of NOM (Dec 18) in ETH (Dec 18)
-    // 1. Determine supply range based on spread and current curve price based on numNOMSold
+    // 1. Determine supply range based on spread and current curve price based on supplyNOM
     // 2. Integrate over curve to get amount of ETH needed to buy amount of NOM
-    // ETH = a/3((numNomSold_Top/a)^3 - (numNOMSold_Bot/a)^3)
+    // ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)
     // Parameters:
     // Input
     // uint256 buyAmount: amount of NOM to be purchased in 18 decimal
@@ -102,8 +106,8 @@ contract BondingNOM {
     // uint256: amount of ETH needed in Wei or ETH 18 decimal
     function buyQuoteNOM(uint256 amountNOM) returns(uint256) {
         uint256 priceBot = safeMath.add(
-                                        bCurvePrice, 
-                                        safeMath.div(bCurvePrice, uint256(100))
+                                        priceBondCurve, 
+                                        safeMath.div(priceBondCurve, uint256(100))
                                     );
         uint256 supplyBot = supplyAtPrice(priceBot);
         uint256 supplyTop = supplyBot + amountNOM;
@@ -146,7 +150,7 @@ contract BondingNOM {
     // Returns Buy Quote for the purchase of NOM based on amount of ETH (Dec 18)
     // 1. Determine supply bottom
     // 2. Integrate over curve, and solve for supply top
-    // numNOMSold_Top = (3*ETH/a + (numNOMSold_Bot/a)^3)^(1/3)
+    // supplyNOM_Top = (3*ETH/a + (supplyNOM_Bot/a)^3)^(1/3)
     // 3. Subtract supply bottom from top to get #NOM for ETH
     // Parameters:
     // Input
@@ -155,16 +159,16 @@ contract BondingNOM {
     // uint256: amount of NOM in 18 decimal
     function buyQuoteETH(uint256 amountETH) returns(uint256) {
         uint256 priceBot = safeMath.add(
-                                bCurvePrice, 
-                                safeMath.div(bondCurvePrice(), uint256(100))
+                                priceBondCurve, 
+                                safeMath.div(priceBondCurve, uint256(100))
                             );
         
         uint256 supplyBot = supplyAtPrice(priceBot);
 
-        uint256 supplyTop = // (3*ETH/a + (numNOMSold_Bot/a)^3)^(1/3)
+        uint256 supplyTop = // (3*ETH/a + (supplyNOM_Bot/a)^3)^(1/3)
                             cubrtu(
                                 f64ToTok(
-                                    // 3*ETH/a + (numNOMSold_Bot/a)^3
+                                    // 3*ETH/a + (supplyNOM_Bot/a)^3
                                     abdk64.add(
                                         // 3*ETH/a
                                         abdk64.mul(
@@ -175,9 +179,9 @@ contract BondingNOM {
                                             ),
                                             abdk64.fromInt(uint256(3))
                                         ),
-                                        // (numNOMSold_Bot/a)^3
+                                        // (supplyNOM_Bot/a)^3
                                         abdk64.pow(
-                                            // numNOMSold_Bot/a
+                                            // supplyNOM_Bot/a
                                             abdk64.divu(supplyBot, a),
                                             uint256(3)
                                         )
@@ -190,14 +194,14 @@ contract BondingNOM {
     function buyNOM() public payable {
         require(msg.value > 0, "No ETH");
         uint256 amountNOM = buyQuoteETH(msg.value);
-        numNOMSold = safeMath.sub(numNomSold, amountNOM);
+        supplyNOM = safeMath.sub(supplyNOM, amountNOM);
         nc.transfer(msg.sender, address(this), amountNOM);
     }
 
     // Returns Sell Quote: NOM for ETH (Dec 18)
-    // 1. Determine supply top: BondcurvePrice - 10% = Top Sale Price
+    // 1. Determine supply top: priceBondCurve - 10% = Top Sale Price
     // 2. Integrate over curve to find ETH
-    // ETH = a/3((numNomSold_Top/a)^3 - (numNOMSold_Bot/a)^3)
+    // ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)
     // 3. Subtract supply bottom from top to get #NOM for ETH
     // Parameters:
     // Input
@@ -206,8 +210,8 @@ contract BondingNOM {
     // uint256: amount of ETH paid in Wei or ETH (18 decimal)
     function sellQuoteNOM(uint256 amountNOM) public view returns(uint256) {
         uint256 priceTop = safeMath.sub(
-                                bCurvePrice, 
-                                safeMath.div(bCurvePrice, uint256(100))
+                                priceBondCurve, 
+                                safeMath.div(priceBondCurve, uint256(100))
                             );
         uint256 supplyTop = supplyAtPrice(priceBot);
         uint256 supplyBot = supplyTop - amountNOM;
@@ -218,8 +222,14 @@ contract BondingNOM {
         require(nc.allowance(msg.sender, address(this)) >= amountNOM, "sender has not enough allowance");
         uint256 paymentETH = sellQuoteNOM(amountNOM);
         nc.transferFrom(msg.sender, address(this), amountNOM);
+        ETHearned = NOMsupplyETH(supplyNOM, supplyNOM - amountNOM)
+        supplyNOM = supplyNOM - amountNOM
+        priceBondCurve = 
         address(msg.sender).transfer(paymentETH)
+        priceBondCurve = 
     }
+
+
 }
 
 
