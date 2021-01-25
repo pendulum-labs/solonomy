@@ -51,11 +51,11 @@ contract BondingNOM is Ownable {
 
     // ETH/NOM = (#NOM Sold/(a*decimals))^2
     // At 18 decimal precision in ETH
-    function priceBCurve() public view returns(uint256) {
+    function priceBCurve(_supplyNOM) public view returns(uint256) {
         return  f64ToTok(
                     abdk.pow(
                         // #NOM Sold/(a*decimals)
-                        abdk.divu(supplyNOM,
+                        abdk.divu(_supplyNOM,
                             // (a*decimals)
                             safeMath.mul(a, uint256(decimals))),
                         // ()^2
@@ -193,8 +193,24 @@ contract BondingNOM is Ownable {
 
     function buyNOM() public payable {
         require(msg.value > 0, "No ETH");
+        uint256 priceBot = safeMath.add(
+                                priceBondCurve, 
+                                safeMath.div(priceBondCurve, uint256(100))
+                            );
+        
+        uint256 supplyBot = supplyAtPrice(priceBot);
         uint256 amountNOM = buyQuoteETH(msg.value);
+
+        // Update persistent contract state variables
+        
+        // Add spread to earned account
+        ETHearned = NOMsupplyETH(supplyBot, supplyNOM);
+        // Update total supply released by Bonding Curve
         supplyNOM = safeMath.sub(supplyNOM, amountNOM);
+        // Update current bond curve price
+        priceBondCurve = priceBCurve(supplyNOM);
+
+        
         nc.transfer(msg.sender, address(this), amountNOM);
     }
 
@@ -220,13 +236,27 @@ contract BondingNOM is Ownable {
 
     function sellNOM(uint256 amountNOM) external {
         require(nc.allowance(msg.sender, address(this)) >= amountNOM, "sender has not enough allowance");
-        uint256 paymentETH = sellQuoteNOM(amountNOM);
+    
+        uint256 priceTop = safeMath.sub(
+                                priceBondCurve, 
+                                safeMath.div(priceBondCurve, uint256(100))
+                            );
+        uint256 supplyTop = supplyAtPrice(priceBot);
+        uint256 supplyBot = supplyTop - amountNOM;
+        uint256 paymentETH = NOMsupplyETH(supplyTop, supplyBot);
+
+        // Transfer NOM to contract
         nc.transferFrom(msg.sender, address(this), amountNOM);
-        ETHearned = NOMsupplyETH(supplyNOM, supplyNOM - amountNOM)
-        supplyNOM = supplyNOM - amountNOM
-        priceBondCurve = 
+        // Update persistent contract state variables
+        
+        // Add spread to earned account
+        ETHearned += NOMsupplyETH(supplyNOM, supplyTop);
+        // Update total supply released by Bonding Curve
+        supplyNOM = safeMath.sub(supplyNOM, amountNOM);
+        // Update current bond curve price
+        priceBondCurve = priceBCurve(supplyNOM);
+        // Transfer ETH to Sender
         address(msg.sender).transfer(paymentETH)
-        priceBondCurve = 
     }
 
 
