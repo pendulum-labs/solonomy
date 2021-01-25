@@ -13,7 +13,7 @@ interface ERC20Token {
 }
 
 interface GravityBridge {
-
+  function getBurnedNOM() external returns (uin256);
 }
 
 contract BondingNOM is Ownable {
@@ -259,6 +259,7 @@ contract BondingNOM is Ownable {
         // Determine available ETH for payment
         // 1. Calculate amount ETH to cover all current NOM outstanding
         //    based on bonding curve integration.
+        burnedNOM = gb.getBurnedNOM();
         uint256 lockedETH = NOMsupplyETH(supplyNOM, burnedNOM);
         // 2. Subtraction lockedETH from Contract Balance to get amount 
         //    available for withdrawal.
