@@ -255,6 +255,7 @@ contract BondingNOM is Ownable {
         supplyNOM = safeMath.sub(supplyNOM, amountNOM);
         // Update current bond curve price
         priceBondCurve = priceBCurve(supplyNOM);
+        
         // Transfer ETH to Sender
         address(msg.sender).transfer(paymentETH)
     }
