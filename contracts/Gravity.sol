@@ -12,7 +12,7 @@ contract Gravity {
 	using SafeERC20 for IERC20;
 
 	BurnableERC20 nc;
-	address public NOMTokenContract
+	address public NOMTokenContract;
 
 	// These are updated often
 	bytes32 public state_lastValsetCheckpoint;

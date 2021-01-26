@@ -18,7 +18,7 @@ module.exports = function(deployer) {
     console.log(`Onomy-Gravity Bridge Contract Address: ${gBridge.address}`)
     console.log('\n*************************************************************************\n')
 
-    await deployer.deploy(BondNOM, NOMtoken.address);
+    await deployer.deploy(BondNOM, NOMtoken.address, gBridge.address);
     const BondingNOM = await ERC20NOM.deployed()
     console.log('\n*************************************************************************\n')
     console.log(`NOM Bonding Contract Address: ${BondingNOM.address}`)
