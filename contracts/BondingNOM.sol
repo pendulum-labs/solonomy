@@ -214,7 +214,7 @@ contract BondingNOM is Ownable {
     }
 
     // Returns Sell Quote: NOM for ETH (Dec 18)
-    // 1. Determine supply top: priceBondCurve - 10% = Top Sale Price
+    // 1. Determine supply top: priceBondCurve - 1% = Top Sale Price
     // 2. Integrate over curve to find ETH
     // ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)
     // 3. Subtract supply bottom from top to get #NOM for ETH
@@ -228,7 +228,7 @@ contract BondingNOM is Ownable {
                                 priceBondCurve, 
                                 safeMath.div(priceBondCurve, uint256(100))
                             );
-        uint256 supplyTop = supplyAtPrice(priceBot);
+        uint256 supplyTop = supplyAtPrice(priceTop);
         uint256 supplyBot = supplyTop - amountNOM;
         return NOMsupplyETH(supplyTop, supplyBot)
     }

@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 const ERC20NOM = artifacts.require("./ERC20NOM.sol");
-const Gravity = artifacts.require("./Gravity.sol");l
+// const Gravity = artifacts.require("./Gravity.sol");l
 const BondNOM = artifacts.require("./BondingNOM.sol");
 
 module.exports = function(deployer) {
@@ -12,13 +12,15 @@ module.exports = function(deployer) {
     console.log(`NOM ERC20 Contract Address: ${NOMtoken.address}`)
     console.log('\n*************************************************************************\n')
     
+    /**
     await deployer.deploy(Gravity, NOMtoken.address);
     const gBridge = await Gravity.deployed()
     console.log('\n*************************************************************************\n')
     console.log(`Onomy-Gravity Bridge Contract Address: ${gBridge.address}`)
     console.log('\n*************************************************************************\n')
-
-    await deployer.deploy(BondNOM, NOMtoken.address, gBridge.address);
+     */
+    
+    await deployer.deploy(BondNOM, NOMtoken.address);
     const BondingNOM = await ERC20NOM.deployed()
     console.log('\n*************************************************************************\n')
     console.log(`NOM Bonding Contract Address: ${BondingNOM.address}`)
