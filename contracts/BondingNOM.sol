@@ -2,9 +2,9 @@
 pragma solidity 0.7.6;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
-import * as safeMath from "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import * as abdk64 from "abdk-libraries-solidity/ABDKMath64x64.sol";
+import "abdk-libraries-solidity/ABDKMath64x64.sol";
 
 interface ERC20Token {
   function allowance(address, address) external returns (uint256);
@@ -35,23 +35,23 @@ contract BondingNOM is Ownable {
     // Conversion from token to 64x64
     function TokToF64(uint256 token) public view returns(int128) {
         require(token/10**uint256(decimals) < MAX_64x64);
-        return abdk64.divu(token, 10**uint256(decimals));
+        return ABDKMath64x64.divu(token, 10**uint256(decimals));
     }
 
     // Convert Fixed Point 64 to Token UInt256
     function f64ToTok(int128 fixed64) public view returns(uint256) {
-        return abdk64.mulu(fixed64, 10**uint256(decimals));
+        return ABDKMath64x64.mulu(fixed64, 10**uint256(decimals));
     }
 
     // ETH/NOM = (#NOM Sold/(a*decimals))^2
     // At 18 decimal precision in ETH
     function priceBCurve(uint256 _supplyNOM) public view returns(uint256) {
         return  f64ToTok(
-                    abdk64.pow(
+                    ABDKMath64x64.pow(
                         // #NOM Sold/(a*decimals)
-                        abdk64.divu(_supplyNOM,
+                        ABDKMath64x64.divu(_supplyNOM,
                             // (a*decimals)
-                            safeMath.mul(a, uint256(decimals))),
+                            SafeMath.mul(a, uint256(decimals))),
                         // ()^2
                         uint256(2)
                     )
@@ -61,10 +61,10 @@ contract BondingNOM is Ownable {
     // #NOM Sold = sqrt(ETH/NOM) * a
     // Input 64.64 fixed point number
     function supplyAtPrice(uint256 price) public view returns (uint256) {
-        return  safeMath.mul(
+        return  SafeMath.mul(
             f64ToTok(
-                abdk64.sqrt(
-                    abdk64.divu(price, 10**uint256(decimals))
+                ABDKMath64x64.sqrt(
+                    ABDKMath64x64.divu(price, 10**uint256(decimals))
                 )
             ),
             a
@@ -76,15 +76,15 @@ contract BondingNOM is Ownable {
     // ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)
     function NOMsupplyETH(uint256 supplyTop, uint256 supplyBot) public view returns(uint256) {
         return f64ToTok(
-            abdk64.mul(
+            ABDKMath64x64.mul(
             // a/3
-                abdk64.divu(a, uint256(3)),
+                ABDKMath64x64.divu(a, uint256(3)),
                     // ((NomSold_Top/a)^3 - (supplyNOM_Bot/a)^3)
-                    abdk64.sub(
+                    ABDKMath64x64.sub(
                         // (NomSold_Top/a)^3
-                        abdk64.pow(abdk64.divu(supplyTop, a), uint256(3)),
+                        ABDKMath64x64.pow(ABDKMath64x64.divu(supplyTop, a), uint256(3)),
                         // (NomSold_Bot/a)^3
-                        abdk64.pow(abdk64.divu(supplyBot, a), uint256(3))
+                        ABDKMath64x64.pow(ABDKMath64x64.divu(supplyBot, a), uint256(3))
                     )
                 )
 
@@ -102,9 +102,9 @@ contract BondingNOM is Ownable {
     // Output
     // uint256: amount of ETH needed in Wei or ETH 18 decimal
     function buyQuoteNOM(uint256 amountNOM) public view returns(uint256) {
-        uint256 priceBot = safeMath.add(
+        uint256 priceBot = SafeMath.add(
                                         priceBondCurve, 
-                                        safeMath.div(priceBondCurve, uint256(100))
+                                        SafeMath.div(priceBondCurve, uint256(100))
                                     );
         uint256 supplyBot = supplyAtPrice(priceBot);
         uint256 supplyTop = supplyBot + amountNOM;
@@ -155,9 +155,9 @@ contract BondingNOM is Ownable {
     // Output
     // uint256: amount of NOM in 18 decimal
     function buyQuoteETH(uint256 amountETH) public view returns(uint256) {
-        uint256 priceBot = safeMath.add(
+        uint256 priceBot = SafeMath.add(
                                 priceBondCurve, 
-                                safeMath.div(priceBondCurve, uint256(100))
+                                SafeMath.div(priceBondCurve, uint256(100))
                             );
         
         uint256 supplyBot = supplyAtPrice(priceBot);
@@ -166,20 +166,20 @@ contract BondingNOM is Ownable {
                             cubrtu(
                                 f64ToTok(
                                     // 3*ETH/a + (supplyNOM_Bot/a)^3
-                                    abdk64.add(
+                                    ABDKMath64x64.add(
                                         // 3*ETH/a
-                                        abdk64.mul(
+                                        ABDKMath64x64.mul(
                                             // ETH/a
-                                            abdk64.div(
+                                            ABDKMath64x64.div(
                                                 TokToF64(amountETH), 
-                                                abdk64.fromInt(uint256(a))
+                                                ABDKMath64x64.fromUInt(uint256(a))
                                             ),
-                                            abdk64.fromInt(uint256(3))
+                                            ABDKMath64x64.fromUInt(uint256(3))
                                         ),
                                         // (supplyNOM_Bot/a)^3
-                                        abdk64.pow(
+                                        ABDKMath64x64.pow(
                                             // supplyNOM_Bot/a
-                                            abdk64.divu(supplyBot, a),
+                                            ABDKMath64x64.divu(supplyBot, a),
                                             uint256(3)
                                         )
                                     )
@@ -195,12 +195,12 @@ contract BondingNOM is Ownable {
         // Update persistent contract state variables
         
         // Update total supply released by Bonding Curve
-        supplyNOM = safeMath.sub(supplyNOM, amountNOM);
+        supplyNOM = SafeMath.sub(supplyNOM, amountNOM);
         // Update current bond curve price
         priceBondCurve = priceBCurve(supplyNOM);
 
         
-        nc.transfer(msg.sender, address(this), amountNOM);
+        nc.transferFrom(msg.sender, address(this), amountNOM);
     }
 
     // Returns Sell Quote: NOM for ETH (Dec 18)
@@ -214,9 +214,9 @@ contract BondingNOM is Ownable {
     // Output
     // uint256: amount of ETH paid in Wei or ETH (18 decimal)
     function sellQuoteNOM(uint256 amountNOM) public view returns(uint256) {
-        uint256 priceTop = safeMath.sub(
+        uint256 priceTop = SafeMath.sub(
                                 priceBondCurve, 
-                                safeMath.div(priceBondCurve, uint256(100))
+                                SafeMath.div(priceBondCurve, uint256(100))
                             );
         uint256 supplyTop = supplyAtPrice(priceTop);
         uint256 supplyBot = supplyTop - amountNOM;
@@ -226,12 +226,12 @@ contract BondingNOM is Ownable {
     function sellNOM(uint256 amountNOM) external {
         require(nc.allowance(msg.sender, address(this)) >= amountNOM, "sender has not enough allowance");
     
-        uint256 priceTop = safeMath.sub(
+        uint256 priceTop = SafeMath.sub(
                                 priceBondCurve, 
-                                safeMath.div(priceBondCurve, uint256(100))
+                                SafeMath.div(priceBondCurve, uint256(100))
                             );
         uint256 supplyTop = supplyAtPrice(priceTop);
-        uint256 supplyBot = safeMath.sub(supplyTop, amountNOM);
+        uint256 supplyBot = SafeMath.sub(supplyTop, amountNOM);
         uint256 paymentETH = NOMsupplyETH(supplyTop, supplyBot);
 
         // Transfer NOM to contract
@@ -239,25 +239,25 @@ contract BondingNOM is Ownable {
         
         // Update persistent contract state variables
         // Update total supply released by Bonding Curve
-        supplyNOM = safeMath.sub(supplyNOM, amountNOM);
+        supplyNOM = SafeMath.sub(supplyNOM, amountNOM);
         // Update current bond curve price
         priceBondCurve = priceBCurve(supplyNOM);
         
         // Transfer ETH to Sender
-        address(msg.sender).transfer(paymentETH);
+        payable(msg.sender).transfer(paymentETH);
     }
 
     function withdraw() public onlyOwner returns(bool success) {
         // Determine available ETH for payment
         // 1. Calculate amount ETH to cover all current NOM outstanding
         //    based on bonding curve integration.
-        burnedNOM = safeMath.sub(supplyNOM, nc.totalSupply());
+        burnedNOM = SafeMath.sub(supplyNOM, nc.totalSupply());
         uint256 lockedETH = NOMsupplyETH(supplyNOM, burnedNOM);
         // 2. Subtraction lockedETH from Contract Balance to get amount 
         //    available for withdrawal.
-        uint256 paymentETH = safeMath.sub(address(this).balance, lockedETH);
+        uint256 paymentETH = SafeMath.sub(address(this).balance, lockedETH);
         // Transfer ETH to Owner
-        address(msg.sender).transfer(paymentETH);
+        payable(msg.sender).transfer(paymentETH);
         return true;
     }
 
