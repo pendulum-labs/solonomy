@@ -12,24 +12,11 @@ interface ERC20Token {
   function transferFrom(address, address, uint) external returns (bool);
 }
 
-interface GravityBridge {
-  function getBurnedNOM() external returns (uint256);
-}
-
 contract BondingNOM is Ownable {
     ERC20Token nc; // NOM contract (nc)
-    GravityBridge gb; // Gravity Bridge
 
     // Address of the nc (NOM ERC20 Contract)
     address public NOMTokenContract
-
-    // Address of gb (Onomy Gravity Bridge) 
-
-    // @dev Access modifier for Gravity-only functionality
-    modifier onlyGr() {
-        require(msg.sender == gravityAddress, "not the gravity contract");
-        _;
-    }
     
     uint256 public supplyNOM = 0;
     uint256 public burnedNOM = 0;
@@ -39,10 +26,9 @@ contract BondingNOM is Ownable {
     // Bonding Curve parameter
     uint256 public a = 100000000;
 
-    constructor (address NOMContAddr, address gBridgeContAddr) public {
+    constructor (address NOMContAddr) public {
         // Add in the NOM ERC20 contract address
         nc = ERC20Token(NOMContAddr);
-        gb = GravityBridge(gBridgeContAddr);
     }
 
     // Conversion from token to 64x64
