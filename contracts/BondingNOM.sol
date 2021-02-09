@@ -29,12 +29,16 @@ contract BondingNOM is Ownable {
 
     constructor (address NOMContAddr) {
         // Add in the NOM ERC20 contract address
+        NOMTokenContract = NOMContAddr;
         nc = ERC20Token(NOMContAddr);
     }
 
-    // Conversion from token to 64x64
-    function TokToF64(uint256 token) public view returns(int128) {
-        require(token/10**uint256(decimals) < MAX_64x64);
+    function getNOMAddr() public view returns (address) {
+        return NOMTokenContract;
+    }
+
+    // Conversion from token at 18 decimals to 64x64
+    function tokToF64(uint256 token) public view returns(int128) {
         return ABDKMath64x64.divu(token, 10**uint256(decimals));
     }
 
@@ -49,9 +53,10 @@ contract BondingNOM is Ownable {
         return  f64ToTok(
                     ABDKMath64x64.pow(
                         // #NOM Sold/(a*decimals)
-                        ABDKMath64x64.divu(_supplyNOM,
-                            // (a*decimals)
-                            SafeMath.mul(a, uint256(decimals))),
+                        ABDKMath64x64.div(
+                            tokToF64(_supplyNOM),
+                            ABDKMath64x64.fromUInt(a)
+                        ),
                         // ()^2
                         uint256(2)
                     )
@@ -118,7 +123,7 @@ contract BondingNOM is Ownable {
     * @param x unsigned 256-bit integer number
     * @return unsigned 256-bit integer number
     */
-    function cubrtu (uint256 x) private pure returns (uint256) {
+    function cubrtu (uint256 x) public pure returns (uint256) {
         if (x == 0) return 0;
         else {
         uint256 xx = x;
@@ -139,8 +144,7 @@ contract BondingNOM is Ownable {
         r = (x/(r**2) + 2*r)/3;
         r = (x/(r**2) + 2*r)/3;
         r = (x/(r**2) + 2*r)/3; // Seven iterations should be enough
-        uint256 r1 = x / r;
-        return uint256 (r < r1 ? r : r1);
+        return r;
         }
     }
 
@@ -171,7 +175,7 @@ contract BondingNOM is Ownable {
                                         ABDKMath64x64.mul(
                                             // ETH/a
                                             ABDKMath64x64.div(
-                                                TokToF64(amountETH), 
+                                                tokToF64(amountETH), 
                                                 ABDKMath64x64.fromUInt(uint256(a))
                                             ),
                                             ABDKMath64x64.fromUInt(uint256(3))

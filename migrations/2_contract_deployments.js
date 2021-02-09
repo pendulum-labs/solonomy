@@ -1,4 +1,5 @@
 const fs = require('fs');
+const ethers = require('ethers');
 
 const ERC20NOM = artifacts.require("./ERC20NOM.sol");
 // const Gravity = artifacts.require("./Gravity.sol");l
@@ -22,12 +23,15 @@ module.exports = function(deployer) {
     
     await deployer.deploy(BondNOM, NOMtoken.address);
     const BondingNOM = await ERC20NOM.deployed()
+    let numTokens = ethers.BigNumber.from(10).pow(18).mul('100000000')
+    let result = await NOMtoken.transfer(Bonding.address, numTokens.toString());
     console.log('\n*************************************************************************\n')
     console.log(`NOM Bonding Contract Address: ${BondingNOM.address}`)
     console.log('\n*************************************************************************\n')
 
     const contAddrs = {
-      NOMERC20: NOMContractInstance.address,
+      NOMERC20: NOMtoken.address,
+      BondingNOM: BondingNOM.address
     }
 
     const contAddrsJSON = JSON.stringify(contAddrs)
