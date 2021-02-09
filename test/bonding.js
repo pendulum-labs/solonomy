@@ -47,17 +47,19 @@ contract("Bonding Curve Tests", async accounts => {
     assert.ok((priceContract.valueOf().toString() - Math.floor(priceJs*10**18)) < 3);
   });
 
-  it("should register ERC20 contract", async () => {
+  it("should register ERC20 contract with bonding contract", async () => {
     const NOMtoken = await ERC20NOM.deployed()
     let instance = await Bonding.deployed(NOMtoken.address);
     let NOMaddress = await instance.getNOMAddr.call();
     assert.equal(NOMaddress.valueOf(), NOMtoken.address)
   });
 
-  it("should register ERC20 contract", async () => {
+  it("should load NOM onto bonding contract", async () => {
     const NOMtoken = await ERC20NOM.deployed()
     let instance = await Bonding.deployed(NOMtoken.address);
-    let NOMaddress = await instance.getNOMAddr.call();
-    assert.equal(NOMaddress.valueOf(), NOMtoken.address)
+    let numTokens = ethers.BigNumber.from(10).pow(18).mul('100000000')
+    let result = await NOMtoken.transfer(Bonding.address, numTokens.toString());
+    let contractAmount = await NOMtoken.balanceOf.call(Bonding.address)
+    assert.equal(numTokens.toString(), contractAmount.toString())
   });
 });
