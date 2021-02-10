@@ -9,7 +9,6 @@ const nthRoot = (bigNumber, intRoot) => {
     const strBigNumber = bigNumber.toString()
     const decimal = Decimal(strBigNumber)
     const root = decimal.pow(1 / intRoot)
-    console.log("Root: ", root.toString())
     Decimal.rounding = Decimal.ROUND_DOWN
     return ethers.BigNumber.from(root.toInteger().toString())
 }
@@ -21,9 +20,6 @@ contract("Bonding Curve Tests", async accounts => {
     let testNum = Math.floor((Math.random() * 10**18) + 1);
     let cube = await instance.cubrtu.call(testNum.toString());
     let cubeJs = nthRoot(testNum, 3);
-    console.log("Test Number: ", testNum);
-    console.log("Contract Cube: ", cube.valueOf().toString());
-    console.log("JS Cube: ", cubeJs.toString());
     assert.equal(cube.valueOf().toString(), cubeJs.toString());
   });
 
@@ -38,12 +34,8 @@ contract("Bonding Curve Tests", async accounts => {
             .toString()
             )
         ).toString()
-    console.log("Contract Input: ", contractInput)
     let priceContract = await instance.priceBCurve.call(contractInput);
     let priceJs = (testSupply/a)**2
-    console.log("Test Number: ", testSupply);
-    console.log("Contract Price: ", priceContract.valueOf().toNumber());
-    console.log("JS Price: ", Math.floor(priceJs * 10**18));
     assert.ok((priceContract.valueOf().toString() - Math.floor(priceJs*10**18)) < 3);
   });
 
@@ -57,9 +49,40 @@ contract("Bonding Curve Tests", async accounts => {
   it("should load NOM onto bonding contract", async () => {
     const NOMtoken = await ERC20NOM.deployed()
     let instance = await Bonding.deployed(NOMtoken.address);
-    let numTokens = ethers.BigNumber.from(10).pow(18).mul('100000000')
-    let result = await NOMtoken.transfer(Bonding.address, numTokens.toString());
-    let contractAmount = await NOMtoken.balanceOf.call(Bonding.address)
+    let numTokens = ethers.utils.parseEther("100000000")
+    let contractAmount = await NOMtoken.balanceOf.call(instance.address)
     assert.equal(numTokens.toString(), contractAmount.toString())
+  });
+
+  it("should allow purchase of NOM", async () => {
+    const NOMtoken = await ERC20NOM.deployed()
+    let instance = await Bonding.deployed(NOMtoken.address);
+    let numTokens = ethers.utils.parseEther("100000000")
+    // let result = await NOMtoken.transfer(instance.address, numTokens.toString());
+    let contractBalance = await NOMtoken.balanceOf(instance.address)
+    console.log(contractBalance.valueOf().toString())
+    console.log("Contract Balance: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
+    console.log("Ether sent: ", ethers.utils.parseEther("2").toString())
+    let result1 = await instance.buyQuoteETH(ethers.utils.parseEther("2").toString())
+    console.log("Buy Quote: ", ethers.utils.formatEther(result1.toString()))
+    let result2 = await instance.buyNOM({from: accounts[0], value: ethers.utils.parseEther("2").toString()})
+    let balance = await NOMtoken.balanceOf(accounts[0])
+    console.log("Account 0: ", ethers.utils.formatEther(balance.toString()))
+    assert.equal(balance.toString(), balance.toString())
+  });
+
+  it("should allow purchase of NOM", async () => {
+    const NOMtoken = await ERC20NOM.deployed()
+    let instance = await Bonding.deployed(NOMtoken.address);
+    let numTokens = ethers.utils.parseEther("100000000")
+    // let result = await NOMtoken.transfer(instance.address, numTokens.toString());
+    let contractBalance = await NOMtoken.balanceOf(instance.address)
+    console.log(contractBalance.valueOf().toString())
+    console.log("Contract Balance: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
+    console.log("Ether sent: ", ethers.utils.parseEther("2").toString())
+    let result2 = await instance.buyNOM({from: accounts[0], value: ethers.utils.parseEther("2").toString()})
+    let balance = await NOMtoken.balanceOf(accounts[0])
+    console.log("Account 0: ", ethers.utils.formatEther(balance.toString()))
+    assert.equal(balance.toString(), balance.toString())
   });
 });

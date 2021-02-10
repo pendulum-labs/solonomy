@@ -22,11 +22,13 @@ module.exports = function(deployer) {
      */
     
     await deployer.deploy(BondNOM, NOMtoken.address);
-    const BondingNOM = await ERC20NOM.deployed()
+    const BondingNOM = await BondNOM.deployed()
     let numTokens = ethers.BigNumber.from(10).pow(18).mul('100000000')
-    let result = await NOMtoken.transfer(Bonding.address, numTokens.toString());
+    let result = await NOMtoken.transfer(BondingNOM.address, numTokens.toString());
+    let balance = await NOMtoken.balanceOf(BondingNOM.address)
     console.log('\n*************************************************************************\n')
     console.log(`NOM Bonding Contract Address: ${BondingNOM.address}`)
+    console.log(`NOM Bonding Contract NOM Balance: ${balance}`)
     console.log('\n*************************************************************************\n')
 
     const contAddrs = {
