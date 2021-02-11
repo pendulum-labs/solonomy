@@ -1,42 +1,49 @@
 const ethers = require('ethers')
 const Bonding = artifacts.require("BondingNOM");
 const ERC20NOM = artifacts.require("ERC20NOM");
-const Decimal = require('decimal.js-light');
+const Decimal = require('decimal.js');
 
-const a = 100000000;
+const a = ethers.utils.parseEther(100000000);
 
+// nthRoot using the decimal.js library
 const nthRoot = (bigNumber, intRoot) => {
     const strBigNumber = bigNumber.toString()
     const decimal = Decimal(strBigNumber)
-    const root = decimal.pow(1 / intRoot)
+    const root = decimal.cbrt()
     Decimal.rounding = Decimal.ROUND_DOWN
-    return ethers.BigNumber.from(root.toInteger().toString())
+    return ethers.BigNumber.from(root.round().toString())
 }
 
 contract("Bonding Curve Tests", async accounts => {
   it("Cube root function should match js", async () => {
-    let instance = await Bonding.deployed();
-    // Test Number is any number from 1 to 10**18
-    let testNum = Math.floor((Math.random() * 10**18) + 1);
-    let cube = await instance.cubrtu.call(testNum.toString());
+    let bondCont = await Bonding.deployed();
+    // Test Number is any number from 1 to 10**50 (2^256)
+    let testNum = ethers.BigNumber.from(
+      (Math.floor(Math.random()*10**20))
+        .toString())
+        .mul(ethers.BigNumber.from(10).pow(30)
+    );
+    let cubeCont = await bondCont.cubrtu.call(testNum.toString());
     let cubeJs = nthRoot(testNum, 3);
-    assert.equal(cube.valueOf().toString(), cubeJs.toString());
+    console.log("** Cube Root Test **")
+    console.log("Test input: ", testNum.toString())
+    console.log("Contract output: ", cubeCont.toString())
+    console.log("JS cube output: ", cubeJs.toString())
+    assert.equal(cubeCont.valueOf().toString(), cubeJs.toString());
   });
 
   it("Bonding Curve price function should match js", async () => {
-    let instance = await Bonding.deployed();
+    let bondCont = await Bonding.deployed();
     // Test supply needs to be 1,000,000 - 1 or less
     let testSupply = Math.floor((Math.random() * 10**6) - 1);
-    let testSupplyBN = ethers.BigNumber.from(testSupply)
-    const contractInput = testSupplyBN.mul(
-        ethers.BigNumber
-            .from((10**18)
-            .toString()
-            )
-        ).toString()
-    let priceContract = await instance.priceBCurve.call(contractInput);
-    let priceJs = (testSupply/a)**2
-    assert.ok((priceContract.valueOf().toString() - Math.floor(priceJs*10**18)) < 3);
+    const inputCont = ethers.utils.parseEther(testSupply.toString())
+    let priceCont = await bondCont.priceBCurve.call(inputCont.toString());
+    let priceJs = ((testSupply/a)**2)*10**18;
+    console.log("** Bonding Curve Price Function Test **")
+    console.log("Test input: ", inputCont.toString())
+    console.log("Contract price: ", priceCont)
+    console.log("JS price: ", priceJs)
+    assert.equal((priceContract.toString(), Math.floor(priceJs)));
   });
 
   it("should register ERC20 contract with bonding contract", async () => {
@@ -57,7 +64,7 @@ contract("Bonding Curve Tests", async accounts => {
   it("should allow purchase of NOM", async () => {
     const NOMtoken = await ERC20NOM.deployed()
     let instance = await Bonding.deployed(NOMtoken.address);
-    let numTokens = ethers.utils.parseEther("100000000")
+    let numTokens = ethers.utils.parseEther("100000000");
     // let result = await NOMtoken.transfer(instance.address, numTokens.toString());
     let contractBalance = await NOMtoken.balanceOf(instance.address)
     console.log(contractBalance.valueOf().toString())

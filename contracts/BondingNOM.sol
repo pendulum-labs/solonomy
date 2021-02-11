@@ -26,7 +26,7 @@ contract BondingNOM is Ownable {
     uint128 private constant MAX_64x64 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
     uint8 public decimals = 18;
     // Bonding Curve parameter
-    uint256 public a = SafeMath.mul(100000000, 10**decimals)
+    uint256 public a = SafeMath.mul(100000000, 10**decimals);
 
     constructor (address NOMContAddr) {
         // Add in the NOM ERC20 contract address
@@ -49,28 +49,23 @@ contract BondingNOM is Ownable {
     }
 
     // ETH/NOM = (#NOM Sold/(a*decimals))^2
-    // At 18 decimal precision in ETH
-    function priceBCurve(uint256 _supplyNOM) public view returns(uint256) {
-        return  f64ToTok(
-                    ABDKMath64x64.pow(
-                        // #NOM Sold/(a*decimals)
-                        ABDKMath64x64.div(
-                            tokToF64(_supplyNOM),
-                            ABDKMath64x64.fromUInt(a)
-                        ),
-                        // ()^2
-                        uint256(2)
-                    )
-                );
+    function priceBCurve(uint256 _supplyNOM) public view returns(uint64) {
+        return ABDKMath64x64.mulu(
+            ABDKMath64x64.divu(
+                _supplyNOM,
+                a
+            ),
+            1
+        );
     }
 
     // #NOM Sold = sqrt(ETH/NOM) * a
     // Input 64.64 fixed point number
     function supplyAtPrice(uint256 price) public view returns (uint256) {
         return  SafeMath.mul(
-            f64ToTok(
+            ABDKMath64x64.toUInt(
                 ABDKMath64x64.sqrt(
-                    ABDKMath64x64.divu(price, 10**uint256(decimals))
+                    ABDKMath64x64.fromUInt(price)
                 )
             ),
             a
