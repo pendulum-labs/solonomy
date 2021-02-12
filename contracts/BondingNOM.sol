@@ -28,6 +28,8 @@ contract BondingNOM is Ownable {
     // Bonding Curve parameter
     uint256 public a = SafeMath.mul(100000000, 10**decimals);
 
+   
+
     constructor (address NOMContAddr) {
         // Add in the NOM ERC20 contract address
         NOMTokenContract = NOMContAddr;
@@ -36,6 +38,10 @@ contract BondingNOM is Ownable {
 
     function getNOMAddr() public view returns (address) {
         return NOMTokenContract;
+    }
+
+    function getSupplyNOM() public view returns (uint256) {
+        return supplyNOM;
     }
 
     // Conversion from token at 18 decimals to 64x64
@@ -48,27 +54,29 @@ contract BondingNOM is Ownable {
         return ABDKMath64x64.mulu(fixed64, 10**uint256(decimals));
     }
 
-    // ETH/NOM = (#NOM Sold/(a*decimals))^2
-    function priceBCurve(uint256 _supplyNOM) public view returns(uint64) {
-        return ABDKMath64x64.mulu(
-            ABDKMath64x64.divu(
-                _supplyNOM,
-                a
-            ),
-            1
-        );
+    // ETH/NOM = (#NOM Sold/(a))^2
+    function priceAtSupply(uint256 _supplyNOM) public view returns(uint256) {
+        return  f64ToTok(
+            ABDKMath64x64.pow(
+                ABDKMath64x64.div(
+                    tokToF64(_supplyNOM), 
+                    tokToF64(a)
+                ),
+                uint256(2)
+            )
+        );  
     }
 
     // #NOM Sold = sqrt(ETH/NOM) * a
     // Input 64.64 fixed point number
     function supplyAtPrice(uint256 price) public view returns (uint256) {
-        return  SafeMath.mul(
-            ABDKMath64x64.toUInt(
+        return f64ToTok(  
+            ABDKMath64x64.mul(
                 ABDKMath64x64.sqrt(
-                    ABDKMath64x64.fromUInt(price)
-                )
-            ),
-            a
+                    tokToF64(price)
+                ),
+                tokToF64(a)
+            )
         );
     }
 
@@ -201,7 +209,7 @@ contract BondingNOM is Ownable {
         // Update total supply released by Bonding Curve
         supplyNOM = SafeMath.add(supplyNOM, amountNOM);
         // Update current bond curve price
-        priceBondCurve = priceBCurve(supplyNOM);
+        priceBondCurve = priceAtSupply(supplyNOM);
 
         nc.transfer(msg.sender, amountNOM);
     }
@@ -244,7 +252,7 @@ contract BondingNOM is Ownable {
         // Update total supply released by Bonding Curve
         supplyNOM = SafeMath.sub(supplyNOM, amountNOM);
         // Update current bond curve price
-        priceBondCurve = priceBCurve(supplyNOM);
+        priceBondCurve = priceAtSupply(supplyNOM);
         
         // Transfer ETH to Sender
         payable(msg.sender).transfer(paymentETH);
