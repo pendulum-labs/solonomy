@@ -68,11 +68,14 @@ contract("Bonding Curve Tests", async accounts => {
     // console.log("Contract Balance: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
     console.log("Test Input Top: ", inputContTop.toString())
     console.log("Test Input Bottom: ", inputContBot.toString())
-    let jsResponse = bondingMath.NOMSupToETH(supplyTop, supplyBot);
-    console.log("JS ETH: ", jsResponse);
-    let response = await bondCont.NOMSupToETH.call(inputContTop, inputContBot);
-    console.log("Contract ETH: ", ethers.utils.formatEther(response.toString()));
-    assert.equal(ethers.utils.formatEther(response.toString()), jsResponse.toString())
+    let resJs = bondingMath.NOMSupToETH(supplyTop, supplyBot);
+    console.log("JS ETH: ", resJs);
+    let resCont = await bondCont.NOMSupToETH.call(inputContTop, inputContBot);
+    console.log("Contract ETH: ", ethers.utils.formatEther(resCont.toString()));
+    assert.ok(
+      Math.abs(
+        ethers.utils.formatEther(resCont.valueOf().toString()) - resJs.toString()
+      ) < 10^(-8));
   });
 
   it("should register ERC20 contract with bonding contract", async () => {
