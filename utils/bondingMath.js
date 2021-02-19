@@ -56,4 +56,11 @@ function ETHtoNOM(amount, supply) {
   return { supplyBot, supplyTop, diff }
 }
 
-module.exports = { cubeRoot, priceAtSupply, ETHtoNOM, supplyAtPrice }
+// NOM supply range to ETH
+// Integrate over curve to get amount of ETH needed to buy amount of NOM
+// ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)
+function NOMSupToETH(supplyTop, supplyBot) {
+    return (a/3)*((supplyTop/a)**3 - (supplyBot/a)**3)
+}
+
+module.exports = { cubeRoot, priceAtSupply, ETHtoNOM, supplyAtPrice, NOMSupToETH }

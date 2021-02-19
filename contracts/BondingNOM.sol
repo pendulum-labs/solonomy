@@ -83,25 +83,40 @@ contract BondingNOM is Ownable {
     // NOM supply range to ETH
     // Integrate over curve to get amount of ETH needed to buy amount of NOM
     // ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)
-    function NOMsupplyETH(uint256 supplyTop, uint256 supplyBot) public view returns(uint256) {
+    function NOMSupToETH(uint256 supplyTop, uint256 supplyBot) public view returns(uint256) {
+        require(supplyTop > supplyBot, "Supply Top is not greater than Supply Bot");
         return f64ToTok(
             ABDKMath64x64.mul(
-            // a/3
-                ABDKMath64x64.divu(a, uint256(3)),
-                    // ((NomSold_Top/a)^3 - (supplyNOM_Bot/a)^3)
-                    ABDKMath64x64.sub(
-                        // (NomSold_Top/a)^3
-                        ABDKMath64x64.pow(ABDKMath64x64.divu(supplyTop, a), uint256(3)),
-                        // (NomSold_Bot/a)^3
-                        ABDKMath64x64.pow(ABDKMath64x64.divu(supplyBot, a), uint256(3))
+                // a/3
+                ABDKMath64x64.div(
+                    tokToF64(a), 
+                    ABDKMath64x64.fromUInt(uint256(3))
+                ),
+                // ((NomSold_Top/a)^3 - (supplyNOM_Bot/a)^3)
+                ABDKMath64x64.sub(
+                    // (NomSold_Top/a)^3
+                    ABDKMath64x64.pow(
+                        ABDKMath64x64.div(
+                            tokToF64(supplyTop), 
+                            tokToF64(a)
+                        ), 
+                        uint256(3)
+                    ),
+                    // (NomSold_Bot/a)^3
+                    ABDKMath64x64.pow(
+                        ABDKMath64x64.div(
+                            tokToF64(supplyBot), 
+                            tokToF64(a)
+                        ), 
+                        uint256(3)
                     )
                 )
-
+            )
         );
     }
                 
     
-    // Returns Buy Quote for a particular amount of NOM (Dec 18) in ETH (Dec 18)
+    // Returns quote for a particular amount of NOM (Dec 18) in ETH (Dec 18)
     // 1. Determine supply range based on spread and current curve price based on supplyNOM
     // 2. Integrate over curve to get amount of ETH needed to buy amount of NOM
     // ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)
@@ -110,14 +125,14 @@ contract BondingNOM is Ownable {
     // uint256 buyAmount: amount of NOM to be purchased in 18 decimal
     // Output
     // uint256: amount of ETH needed in Wei or ETH 18 decimal
-    function buyQuoteNOM(uint256 amountNOM) public view returns(uint256) {
+    function quoteNOM(uint256 amountNOM) public view returns(uint256) {
         uint256 priceBot = SafeMath.add(
                                         priceBondCurve, 
                                         SafeMath.div(priceBondCurve, uint256(100))
                                     );
         uint256 supplyBot = supplyAtPrice(priceBot);
         uint256 supplyTop = supplyBot + amountNOM;
-        return  NOMsupplyETH(supplyTop, supplyBot);
+        return  NOMSupToETH(supplyTop, supplyBot);
     }
 
     /**
@@ -231,7 +246,7 @@ contract BondingNOM is Ownable {
                             );
         uint256 supplyTop = supplyAtPrice(priceTop);
         uint256 supplyBot = supplyTop - amountNOM;
-        return NOMsupplyETH(supplyTop, supplyBot);
+        return NOMSupToETH(supplyTop, supplyBot);
     }
 
     function sellNOM(uint256 amountNOM) external {
@@ -243,7 +258,7 @@ contract BondingNOM is Ownable {
                             );
         uint256 supplyTop = supplyAtPrice(priceTop);
         uint256 supplyBot = SafeMath.sub(supplyTop, amountNOM);
-        uint256 paymentETH = NOMsupplyETH(supplyTop, supplyBot);
+        uint256 paymentETH = NOMSupToETH(supplyTop, supplyBot);
 
         // Transfer NOM to contract
         nc.transferFrom(msg.sender, address(this), amountNOM);
@@ -263,7 +278,7 @@ contract BondingNOM is Ownable {
         // 1. Calculate amount ETH to cover all current NOM outstanding
         //    based on bonding curve integration.
         burnedNOM = SafeMath.sub(supplyNOM, nc.totalSupply());
-        uint256 lockedETH = NOMsupplyETH(supplyNOM, burnedNOM);
+        uint256 lockedETH = NOMSupToETH(supplyNOM, burnedNOM);
         // 2. Subtraction lockedETH from Contract Balance to get amount 
         //    available for withdrawal.
         uint256 paymentETH = SafeMath.sub(address(this).balance, lockedETH);

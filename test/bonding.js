@@ -57,6 +57,24 @@ contract("Bonding Curve Tests", async accounts => {
       ) < 10^(-10));
   });
 
+  it("should give ETH representing a range of NOM supply", async () => {
+    const tokenCont = await ERC20NOM.deployed()
+    let bondCont = await Bonding.deployed(tokenCont.address);
+    let supplyTop = Math.random()*100000000;
+    const supplyBot = Math.random()*supplyTop;
+    const inputContTop = ethers.utils.parseEther(supplyTop.toString())
+    const inputContBot = ethers.utils.parseEther(supplyBot.toString())
+    console.log("** NOM Supply to ETH Test **");
+    // console.log("Contract Balance: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
+    console.log("Test Input Top: ", inputContTop.toString())
+    console.log("Test Input Bottom: ", inputContBot.toString())
+    let jsResponse = bondingMath.NOMSupToETH(supplyTop, supplyBot);
+    console.log("JS ETH: ", jsResponse);
+    let response = await bondCont.NOMSupToETH.call(inputContTop, inputContBot);
+    console.log("Contract ETH: ", ethers.utils.formatEther(response.toString()));
+    assert.equal(ethers.utils.formatEther(response.toString()), jsResponse.toString())
+  });
+
   it("should register ERC20 contract with bonding contract", async () => {
     const NOMtoken = await ERC20NOM.deployed()
     let instance = await Bonding.deployed(NOMtoken.address);
@@ -75,9 +93,9 @@ contract("Bonding Curve Tests", async accounts => {
   it("should give buy quote of NOM given amount of ETH", async () => {
     const NOMtoken = await ERC20NOM.deployed()
     let instance = await Bonding.deployed(NOMtoken.address);
-    let testETH = Math.floor((Math.random() * 10**7) - 1);
+    let testETH = Math.random();
     const inputCont = ethers.utils.parseEther(testETH.toString())
-    let supplyNOM = await NOMtoken.getSupplyNOM.call();
+    let buyQuoteCont = await instance.quoteNOM.call(inputCont);
     console.log("** Buy Quote Test **");
     console.log("Contract Balance: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
     console.log("Test Input: ", inputCont.toString())
