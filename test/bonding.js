@@ -140,7 +140,7 @@ contract("Bonding Curve Tests", async accounts => {
   it("should allow purchase of NOM", async () => {
     const tokenCont = await ERC20NOM.deployed()
     let bondCont = await Bonding.deployed(tokenCont.address);
-    let amountETH = Math.random()*10**5;
+    let amountETH = 1;
     let inputCont = ethers.utils.parseEther(amountETH.toString())
     // let result = await tokenCont.transfer(instance.address, numTokens.toString());
     let contractBalance = await tokenCont.balanceOf.call(bondCont.address);
@@ -149,7 +149,7 @@ contract("Bonding Curve Tests", async accounts => {
     console.log("Ether sent: ", inputCont.toString())
     let result1 = await bondCont.buyQuoteETH.call(inputCont.toString());
     console.log("Buy Quote: ", ethers.utils.formatEther(result1.toString()))
-    let result2 = await bondCont.buyNOM({from: accounts[0], value: ethers.utils.parseEther(inputCont.toString()).toString()})
+    let result2 = await bondCont.buyNOM({from: accounts[0], value: inputCont.toString()})
     let balance = await tokenCont.balanceOf(accounts[0])
     console.log("Account 0: ", ethers.utils.formatEther(balance.toString()))
     assert.equal(balance.toString(), balance.toString())
