@@ -22,7 +22,7 @@ contract BondingNOM is Ownable {
     
     uint256 public supplyNOM = 0;
     uint256 public burnedNOM = 0;
-    uint256 public priceBondCurve;
+    uint256 public priceBondCurve = 0;
     uint128 private constant MAX_64x64 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
     uint8 public decimals = 18;
     // Bonding Curve parameter
@@ -42,6 +42,10 @@ contract BondingNOM is Ownable {
 
     function getSupplyNOM() public view returns (uint256) {
         return supplyNOM;
+    }
+
+    function getBondPrice() public view returns (uint256) {
+        return priceBondCurve;
     }
 
     // Conversion from token at 18 decimals to 64x64
@@ -126,13 +130,20 @@ contract BondingNOM is Ownable {
     // Output
     // uint256: amount of ETH needed in Wei or ETH 18 decimal
     function quoteNOM(uint256 amountNOM) public view returns(uint256) {
-        uint256 priceBot = SafeMath.add(
-                                        priceBondCurve, 
-                                        SafeMath.div(priceBondCurve, uint256(100))
-                                    );
-        uint256 supplyBot = supplyAtPrice(priceBot);
-        uint256 supplyTop = supplyBot + amountNOM;
-        return  NOMSupToETH(supplyTop, supplyBot);
+        uint256 supplyTop = SafeMath.add(supplyNOM, amountNOM);
+        uint256 amountETH = NOMSupToETH(supplyTop, supplyNOM);
+        return SafeMath.sub(amountETH, SafeMath.div(amountETH, uint256(100)));
+    }
+
+    /**
+    * Calculate cubrt (x) rounding down.  Revert if x < 0.
+    *
+    * @param x signed 64.64-bit fixed point number
+    * @return signed 64.64-bit fixed point number
+    */
+    function cubrt (int128 x) public pure returns (int128) {
+        require (x >= 0);
+        return int128 (cubrtu (uint256 (x) << 64));
     }
 
     /**
@@ -170,7 +181,7 @@ contract BondingNOM is Ownable {
     // Returns Buy Quote for the purchase of NOM based on amount of ETH (Dec 18)
     // 1. Determine supply bottom
     // 2. Integrate over curve, and solve for supply top
-    // supplyNOM_Top = (3*ETH/a + (supplyNOM_Bot/a)^3)^(1/3)
+    // supplyNOM_Top = a*(3*ETH/a + (supplyNOM_Bot/a)^3)^(1/3)
     // 3. Subtract supply bottom from top to get #NOM for ETH
     // Parameters:
     // Input
@@ -178,43 +189,37 @@ contract BondingNOM is Ownable {
     // Output
     // uint256: amount of NOM in 18 decimal
     function buyQuoteETH(uint256 amountETH) public view returns(uint256) {
-        uint256 priceBot = SafeMath.add(
-                                priceBondCurve, 
-                                SafeMath.div(priceBondCurve, uint256(100))
-                            );
+        uint256 amountNet = SafeMath.sub(amountETH, SafeMath.div(amountETH, uint256(100)));
         
-        uint256 supplyBot = supplyAtPrice(priceBot);
-
-        uint256 supplyTop = // a*(3*ETH/a + (supplyNOM_Bot/a)^3)^(1/3)
-                            SafeMath.mul(
-                                cubrtu(
-                                    f64ToTok(
-                                        // 3*ETH/a + (supplyNOM_Bot/a)^3
-                                        ABDKMath64x64.add(
-                                            // 3*ETH/a
-                                            ABDKMath64x64.mul(
-                                                // ETH/a
-                                                ABDKMath64x64.div(
-                                                    tokToF64(amountETH), 
-                                                    ABDKMath64x64.fromUInt(a)
-                                                ),
-                                                ABDKMath64x64.fromUInt(uint256(3))
-                                            ),
-                                            // (supplyNOM_Bot/a)^3
-                                            ABDKMath64x64.pow(
-                                                // supplyNOM_Bot/a
-                                                ABDKMath64x64.div(
-                                                    tokToF64(supplyBot), 
-                                                    ABDKMath64x64.fromUInt(a)
-                                                ),
-                                                uint256(3)
-                                            )
-                                        )
-                                    )
-                                ), 
-                                a*10**6
-                            );
-        return (supplyTop - supplyBot);
+        
+        uint256 supplyTop = // supplyNOM_Top = a*(3*ETH/a + (supplyNOM_Bot/a)^3)^(1/3)
+            cubrtu(
+                SafeMath.mul(               
+                    SafeMath.mul(a, a),    
+                    f64ToTok(
+                        ABDKMath64x64.add(    
+                            ABDKMath64x64.mul(
+                                ABDKMath64x64.fromUInt(uint256(3)),
+                                tokToF64(amountNet)
+                            ),
+                            ABDKMath64x64.mul(
+                                ABDKMath64x64.pow(
+                                    ABDKMath64x64.div(
+                                        tokToF64(supplyNOM),
+                                        tokToF64(a)
+                                    ),
+                                    uint256(2)
+                                ),
+                                tokToF64(supplyNOM)
+                            )
+                        )
+                    )
+                )
+                
+            );
+        
+        
+        return supplyTop - supplyNOM;
     }
 
     function buyNOM() public payable {

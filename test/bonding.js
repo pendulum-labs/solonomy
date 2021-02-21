@@ -12,7 +12,7 @@ contract("Bonding Curve Tests", async accounts => {
     let testNum = ethers.BigNumber.from(
       (Math.floor(Math.random()*10**20))
         .toString())
-        .mul(ethers.BigNumber.from(10).pow(30)
+        .mul(ethers.BigNumber.from(10).pow(1)
     );
     let cubeCont = await bondCont.cubrtu.call(testNum.toString());
     let cubeJs = bondingMath.cubeRoot(testNum);
@@ -79,47 +79,78 @@ contract("Bonding Curve Tests", async accounts => {
   });
 
   it("should register ERC20 contract with bonding contract", async () => {
-    const NOMtoken = await ERC20NOM.deployed()
-    let instance = await Bonding.deployed(NOMtoken.address);
-    let NOMaddress = await instance.getNOMAddr.call();
-    assert.equal(NOMaddress.valueOf(), NOMtoken.address)
+    const tokenCont = await ERC20NOM.deployed()
+    let bondCont = await Bonding.deployed(tokenCont.address);
+    let NOMaddress = await bondCont.getNOMAddr.call();
+    assert.equal(NOMaddress.valueOf(), tokenCont.address)
   });
 
   it("should load NOM onto bonding contract", async () => {
-    const NOMtoken = await ERC20NOM.deployed()
-    let instance = await Bonding.deployed(NOMtoken.address);
+    const tokenCont = await ERC20NOM.deployed()
+    let bondCont = await Bonding.deployed(tokenCont.address);
     let numTokens = ethers.utils.parseEther("100000000")
-    let contractAmount = await NOMtoken.balanceOf.call(instance.address)
+    let contractAmount = await tokenCont.balanceOf.call(bondCont.address)
     assert.equal(numTokens.toString(), contractAmount.toString())
   });
 
-  it("should give buy quote of NOM given amount of ETH", async () => {
-    const NOMtoken = await ERC20NOM.deployed()
-    let instance = await Bonding.deployed(NOMtoken.address);
-    let testETH = Math.random();
-    const inputCont = ethers.utils.parseEther(testETH.toString())
-    let buyQuoteCont = await instance.quoteNOM.call(inputCont);
-    console.log("** Buy Quote Test **");
+  it("should give amount of ETH needed for a given amount of NOM", async () => {
+    const tokenCont = await ERC20NOM.deployed()
+    let bondCont = await Bonding.deployed(tokenCont.address);
+    let testAmount = Math.random()*10**8;
+    const inputCont = ethers.utils.parseEther(testAmount.toString())
+    let supplyNOM = await bondCont.getSupplyNOM.call();
+    let quoteCont = await bondCont.quoteNOM.call(inputCont.toString());
+    let quoteJs = bondingMath.quoteNOM(testAmount, supplyNOM.toString());
+    console.log("** Buy Quote given NOM Test **");
+    console.log("Test Input: ", inputCont.toString());
+    console.log("Quote Contract: ", ethers.utils.formatEther(quoteCont.toString()));
+    console.log("Quote JS: ", quoteJs.toString());
+    assert.ok(
+      Math.abs(
+        ethers.utils.formatEther(quoteCont.valueOf().toString()) - quoteJs.toString()
+      ) < 10^(-9));
+  });
+
+  it("should give purchase amount of NOM for an amount of ETH", async () => {
+    const tokenCont = await ERC20NOM.deployed()
+    let bondCont = await Bonding.deployed(tokenCont.address);
+    let amountETH = Math.random()*10**5;
+    let inputCont = ethers.utils.parseEther(amountETH.toString())
+    // let result = await tokenCont.transfer(instance.address, numTokens.toString());
+    let contractBalance = await tokenCont.balanceOf.call(bondCont.address);
+    let supplyNOM = await bondCont.getSupplyNOM.call();
+    console.log("** Buy Quote given ETH test **");
     console.log("Contract Balance: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
-    console.log("Test Input: ", inputCont.toString())
-    let result1 = await instance.buyQuoteETH(inputCont.toString())
-    console.log("Buy Quote Contract: ", ethers.utils.formatEther(result1.toString()))
-    assert.equal(balance.toString(), balance.toString())
+    console.log("NOM Issued by contract: ", supplyNOM.toString());
+    console.log("Ether sent: ", inputCont.toString())
+    let quoteCont = await bondCont.buyQuoteETH.call(inputCont.toString());
+    console.log("Contract NOM: ", ethers.utils.formatEther(quoteCont.valueOf().toString()))
+    let quoteJs = bondingMath.buyQuoteETH(amountETH, ethers.utils.formatEther(supplyNOM.toString()).toString())
+    console.log("JS NOM: ", quoteJs.toString())
+    console.log("Difference: ", Math.abs(
+      ethers.utils.formatEther(quoteCont.valueOf().toString()) - quoteJs.toString()
+    ))
+    assert.ok(
+      Math.abs(
+        ethers.utils.formatEther(quoteCont.valueOf().toString()) - quoteJs.toString()
+      ) < 10^(-9)
+    );
   });
 
   it("should allow purchase of NOM", async () => {
-    const NOMtoken = await ERC20NOM.deployed()
-    let instance = await Bonding.deployed(NOMtoken.address);
-    let numTokens = ethers.utils.parseEther("100000000");
-    // let result = await NOMtoken.transfer(instance.address, numTokens.toString());
-    let contractBalance = await NOMtoken.balanceOf(instance.address)
+    const tokenCont = await ERC20NOM.deployed()
+    let bondCont = await Bonding.deployed(tokenCont.address);
+    let amountETH = Math.random()*10**5;
+    let inputCont = ethers.utils.parseEther(amountETH.toString())
+    // let result = await tokenCont.transfer(instance.address, numTokens.toString());
+    let contractBalance = await tokenCont.balanceOf.call(bondCont.address);
     console.log("** Purchase NOM Test **");
     console.log("Contract Balance: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
-    console.log("Ether sent: ", ethers.utils.parseEther("2").toString())
-    let result1 = await instance.buyQuoteETH(ethers.utils.parseEther("2").toString())
+    console.log("Ether sent: ", inputCont.toString())
+    let result1 = await bondCont.buyQuoteETH.call(inputCont.toString());
     console.log("Buy Quote: ", ethers.utils.formatEther(result1.toString()))
-    let result2 = await instance.buyNOM({from: accounts[0], value: ethers.utils.parseEther("2").toString()})
-    let balance = await NOMtoken.balanceOf(accounts[0])
+    let result2 = await bondCont.buyNOM({from: accounts[0], value: ethers.utils.parseEther(inputCont.toString()).toString()})
+    let balance = await tokenCont.balanceOf(accounts[0])
     console.log("Account 0: ", ethers.utils.formatEther(balance.toString()))
     assert.equal(balance.toString(), balance.toString())
   });
