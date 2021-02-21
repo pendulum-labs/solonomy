@@ -192,10 +192,12 @@ contract BondingNOM is Ownable {
         uint256 amountNet = SafeMath.sub(amountETH, SafeMath.div(amountETH, uint256(100)));
         
         
-        uint256 supplyTop = // supplyNOM_Top = a*(3*ETH/a + (supplyNOM_Bot/a)^3)^(1/3)
+        uint256 supplyTop = // supplyNOM_Top = (a^2*(3*ETH + (supplyNOM_Bot/a)^2*supplyNOM_Bot))^(1/3)
             cubrtu(
-                SafeMath.mul(               
+                SafeMath.mul(
+                    // a^2               
                     SafeMath.mul(a, a),    
+                    // (3*ETH + (supplyNOM_Bot/a)^2*supplyNOM_Bot)
                     f64ToTok(
                         ABDKMath64x64.add(    
                             ABDKMath64x64.mul(
