@@ -190,22 +190,27 @@ contract("Bonding Curve Tests", async accounts => {
     let balContNOM2 = await tokenCont.balanceOf(bondCont.address)
     console.log("Contract NOM Before: ", ethers.utils.formatEther(balContNOM2.valueOf().toString()))
     let balance2 = await tokenCont.balanceOf(accounts[1])
-    console.log("Account 0 NOM Before: ", ethers.utils.formatEther(balance2.toString()))
+    console.log("Account NOM Before: ", ethers.utils.formatEther(balance2.toString()))
     let result3 = await bondCont.sellQuoteNOM.call(balance2.toString());
     console.log("Sell Quote: ", ethers.utils.formatEther(result3.toString()))
 
-    let result4 = await tokenCont.increaseAllowance(bondCont.address, balance2.toString())
-    let result5 = await bondCont.sellNOM(balance2.toString())
+    let result4 = await tokenCont.increaseAllowance(bondCont.address, balance2.toString(), {from: accounts[1]})
+    let result5 = await tokenCont.allowance(accounts[1], bondCont.address);
+    console.log("Account NOM Allowance: ", result5.toString())
+    let result6 = await bondCont.sellNOM(balance2.toString(), {from: accounts[1]})
     let balance3 = await tokenCont.balanceOf(accounts[1])
-    console.log("Account 0 NOM After: ", ethers.utils.formatEther(balance3.toString()))
+    console.log("Account NOM After: ", ethers.utils.formatEther(balance3.toString()))
     let balContNOM3 = await tokenCont.balanceOf(bondCont.address)
     console.log("Contract NOM After: ", ethers.utils.formatEther(balContNOM3.toString()))
     let balContETH2 = await web3.eth.getBalance(bondCont.address)
     console.log("Contract ETH: ", ethers.utils.formatEther(balContETH2.toString()))
-    
     let balTeamETH2 = await bondCont.teamBalance.call()
     console.log("Team ETH: ", ethers.utils.formatEther(balTeamETH2.toString()))
-
-    assert.equal(balance.toString(), balance.toString())
+    let balAcctETH1 = await web3.eth.getBalance(accounts[0])
+    console.log("Account 0 ETH Before: ", balAcctETH1)
+    let result7 = await bondCont.withdraw({from: accounts[0]});
+    let balAcctETH2 = await web3.eth.getBalance(accounts[0])
+    console.log("Account 0 ETH After: ", balAcctETH2)
+    assert.equal(balance3.toString(), "0")
   });
 });

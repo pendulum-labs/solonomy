@@ -20,7 +20,6 @@ contract BondingNOM is Ownable {
     // Address of the nc (NOM ERC20 Contract)
     address public NOMTokenContract;
     uint256 public supplyNOM = 0;
-    uint256 public burnedNOM = 0;
     uint256 public priceBondCurve = 0;
     uint128 private constant MAX_64x64 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
     uint8 public decimals = 18;
@@ -270,22 +269,28 @@ contract BondingNOM is Ownable {
     }
 
     function teamBalance() public returns(uint256) {
+        if (supplyNOM == 0) {
+            return address(this).balance;
+        }
         // Determine available ETH for payment
         // 1. Calculate amount ETH to cover all current NOM outstanding
         //    based on bonding curve integration.
-        uint256 _burnedNOM = SafeMath.sub(a, nc.totalSupply());
-        // uint256 lockedETH = NOMSupToETH(supplyNOM, _burnedNOM);
+        uint256 burnedNOM = SafeMath.sub(a, nc.totalSupply());
+        uint256 lockedETH = NOMSupToETH(supplyNOM, burnedNOM);
         // 2. Subtraction lockedETH from Contract Balance to get amount 
         //    available for withdrawal.
-        //return SafeMath.sub(address(this).balance, lockedETH);
-        return supplyNOM;
+        return SafeMath.sub(address(this).balance, lockedETH);
     }
 
     function withdraw() public onlyOwner returns(bool success) {
+        if (supplyNOM == 0) {
+            payable(msg.sender).transfer(address(this).balance);
+            return true;
+        }
         // Determine available ETH for payment
         // 1. Calculate amount ETH to cover all current NOM outstanding
         //    based on bonding curve integration.
-        burnedNOM = SafeMath.sub(a, nc.totalSupply());
+        uint256 burnedNOM = SafeMath.sub(a, nc.totalSupply());
         uint256 lockedETH = NOMSupToETH(supplyNOM, burnedNOM);
         // 2. Subtraction lockedETH from Contract Balance to get amount 
         //    available for withdrawal.
