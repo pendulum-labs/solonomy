@@ -145,13 +145,67 @@ contract("Bonding Curve Tests", async accounts => {
     // let result = await tokenCont.transfer(instance.address, numTokens.toString());
     let contractBalance = await tokenCont.balanceOf.call(bondCont.address);
     console.log("** Purchase NOM Test **");
-    console.log("Contract Balance: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
+    
     console.log("Ether sent: ", inputCont.toString())
     let result1 = await bondCont.buyQuoteETH.call(inputCont.toString());
     console.log("Buy Quote: ", ethers.utils.formatEther(result1.toString()))
-    let result2 = await bondCont.buyNOM({from: accounts[0], value: inputCont.toString()})
-    let balance = await tokenCont.balanceOf(accounts[0])
-    console.log("Account 0: ", ethers.utils.formatEther(balance.toString()))
+    let result2 = await bondCont.buyNOM({from: accounts[1], value: inputCont.toString()})
+    let balance = await tokenCont.balanceOf(accounts[1])
+    console.log("Account 0 NOM: ", ethers.utils.formatEther(balance.toString()))
+    let balContNOM = await tokenCont.balanceOf(bondCont.address)
+    console.log("Contract NOM Before: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
+    console.log("Contract NOM After: ", ethers.utils.formatEther(balContNOM.toString()))
+    let balContETH = await web3.eth.getBalance(bondCont.address)
+    console.log("Contract ETH: ", ethers.utils.formatEther(balContETH.toString()))
+    assert.equal(balance.toString(), balance.toString())
+    let balTeamETH = await bondCont.teamBalance.call()
+    console.log("Team ETH: ", ethers.utils.formatEther(balTeamETH.toString()))
+  });
+
+  it("should allow purchase and sale of NOM", async () => {
+    const tokenCont = await ERC20NOM.deployed()
+    let bondCont = await Bonding.deployed(tokenCont.address);
+    let amountETH = 1;
+    let inputCont = ethers.utils.parseEther(amountETH.toString())
+    // let result = await tokenCont.transfer(instance.address, numTokens.toString());
+    let contractBalance = await tokenCont.balanceOf.call(bondCont.address);
+    console.log("** Purchase NOM Test **");
+    
+    console.log("Ether sent: ", inputCont.toString())
+    let result1 = await bondCont.buyQuoteETH.call(inputCont.toString());
+    console.log("Buy Quote: ", ethers.utils.formatEther(result1.toString()))
+    let result2 = await bondCont.buyNOM({from: accounts[1], value: inputCont.toString()})
+    let balance = await tokenCont.balanceOf(accounts[1])
+    console.log("Account 0 NOM: ", ethers.utils.formatEther(balance.toString()))
+    let balContNOM = await tokenCont.balanceOf(bondCont.address)
+    console.log("Contract NOM Before: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
+    console.log("Contract NOM After: ", ethers.utils.formatEther(balContNOM.toString()))
+    let balContETH = await web3.eth.getBalance(bondCont.address)
+    console.log("Contract ETH: ", ethers.utils.formatEther(balContETH.toString()))
+    assert.equal(balance.toString(), balance.toString())
+    let balTeamETH = await bondCont.teamBalance.call()
+    console.log("Team ETH: ", ethers.utils.formatEther(balTeamETH.toString()))
+    
+    console.log("** Sell NOM Test **")
+    let balContNOM2 = await tokenCont.balanceOf(bondCont.address)
+    console.log("Contract NOM Before: ", ethers.utils.formatEther(balContNOM2.valueOf().toString()))
+    let balance2 = await tokenCont.balanceOf(accounts[1])
+    console.log("Account 0 NOM Before: ", ethers.utils.formatEther(balance2.toString()))
+    let result3 = await bondCont.sellQuoteNOM.call(balance2.toString());
+    console.log("Sell Quote: ", ethers.utils.formatEther(result3.toString()))
+
+    let result4 = await tokenCont.increaseAllowance(bondCont.address, balance2.toString())
+    let result5 = await bondCont.sellNOM(balance2.toString())
+    let balance3 = await tokenCont.balanceOf(accounts[1])
+    console.log("Account 0 NOM After: ", ethers.utils.formatEther(balance3.toString()))
+    let balContNOM3 = await tokenCont.balanceOf(bondCont.address)
+    console.log("Contract NOM After: ", ethers.utils.formatEther(balContNOM3.toString()))
+    let balContETH2 = await web3.eth.getBalance(bondCont.address)
+    console.log("Contract ETH: ", ethers.utils.formatEther(balContETH2.toString()))
+    
+    let balTeamETH2 = await bondCont.teamBalance.call()
+    console.log("Team ETH: ", ethers.utils.formatEther(balTeamETH2.toString()))
+
     assert.equal(balance.toString(), balance.toString())
   });
 });

@@ -19,7 +19,6 @@ contract BondingNOM is Ownable {
 
     // Address of the nc (NOM ERC20 Contract)
     address public NOMTokenContract;
-    
     uint256 public supplyNOM = 0;
     uint256 public burnedNOM = 0;
     uint256 public priceBondCurve = 0;
@@ -247,25 +246,15 @@ contract BondingNOM is Ownable {
     // Output
     // uint256: amount of ETH paid in Wei or ETH (18 decimal)
     function sellQuoteNOM(uint256 amountNOM) public view returns(uint256) {
-        uint256 priceTop = SafeMath.sub(
-                                priceBondCurve, 
-                                SafeMath.div(priceBondCurve, uint256(100))
-                            );
-        uint256 supplyTop = supplyAtPrice(priceTop);
-        uint256 supplyBot = supplyTop - amountNOM;
-        return NOMSupToETH(supplyTop, supplyBot);
+        uint256 supplyBot = supplyNOM - amountNOM;
+        uint256 amountETH = NOMSupToETH(supplyNOM, supplyBot);
+        return SafeMath.sub(amountETH, SafeMath.div(amountETH, uint256(100)));
     }
 
-    function sellNOM(uint256 amountNOM) external {
+    function sellNOM(uint256 amountNOM) public {
         require(nc.allowance(msg.sender, address(this)) >= amountNOM, "sender has not enough allowance");
-    
-        uint256 priceTop = SafeMath.sub(
-                                priceBondCurve, 
-                                SafeMath.div(priceBondCurve, uint256(100))
-                            );
-        uint256 supplyTop = supplyAtPrice(priceTop);
-        uint256 supplyBot = SafeMath.sub(supplyTop, amountNOM);
-        uint256 paymentETH = NOMSupToETH(supplyTop, supplyBot);
+
+        uint256 amountETH = sellQuoteNOM(amountNOM);
 
         // Transfer NOM to contract
         nc.transferFrom(msg.sender, address(this), amountNOM);
@@ -277,14 +266,26 @@ contract BondingNOM is Ownable {
         priceBondCurve = priceAtSupply(supplyNOM);
         
         // Transfer ETH to Sender
-        payable(msg.sender).transfer(paymentETH);
+        payable(msg.sender).transfer(amountETH);
+    }
+
+    function teamBalance() public returns(uint256) {
+        // Determine available ETH for payment
+        // 1. Calculate amount ETH to cover all current NOM outstanding
+        //    based on bonding curve integration.
+        uint256 _burnedNOM = SafeMath.sub(a, nc.totalSupply());
+        // uint256 lockedETH = NOMSupToETH(supplyNOM, _burnedNOM);
+        // 2. Subtraction lockedETH from Contract Balance to get amount 
+        //    available for withdrawal.
+        //return SafeMath.sub(address(this).balance, lockedETH);
+        return supplyNOM;
     }
 
     function withdraw() public onlyOwner returns(bool success) {
         // Determine available ETH for payment
         // 1. Calculate amount ETH to cover all current NOM outstanding
         //    based on bonding curve integration.
-        burnedNOM = SafeMath.sub(supplyNOM, nc.totalSupply());
+        burnedNOM = SafeMath.sub(a, nc.totalSupply());
         uint256 lockedETH = NOMSupToETH(supplyNOM, burnedNOM);
         // 2. Subtraction lockedETH from Contract Balance to get amount 
         //    available for withdrawal.
