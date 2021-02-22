@@ -93,4 +93,20 @@ function buyQuoteETH(amountETH, supplyNOM) {
     return (supplyTop - supplyNOM);
 }
 
-module.exports = { cubeRoot, priceAtSupply, ETHtoNOM, supplyAtPrice, NOMSupToETH, quoteNOM, buyQuoteETH }
+// Returns Sell Quote: NOM for ETH (Dec 18)
+// 1. Determine supply top: priceBondCurve - 1% = Top Sale Price
+// 2. Integrate over curve to find ETH
+// ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)
+// 3. Subtract supply bottom from top to get #NOM for ETH
+// Parameters:
+// Input
+// uint256 amountNOM: amount of NOM to be sold (18 decimal)
+// Output
+// uint256: amount of ETH paid in Wei or ETH (18 decimal)
+function sellQuoteNOM(amountNOM, supplyNOM) {
+    supplyBot = supplyNOM - amountNOM;
+    amountETH = NOMSupToETH(supplyNOM, supplyBot);
+    return amountETH*.99;
+}
+
+module.exports = { cubeRoot, priceAtSupply, ETHtoNOM, supplyAtPrice, NOMSupToETH, quoteNOM, buyQuoteETH, sellQuoteNOM }
