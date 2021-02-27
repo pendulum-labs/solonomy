@@ -127,7 +127,7 @@ contract BondingNOM is Ownable {
     // uint256 buyAmount: amount of NOM to be purchased in 18 decimal
     // Output
     // uint256: amount of ETH needed in Wei or ETH 18 decimal
-    function quoteNOM(uint256 amountNOM) public view returns(uint256) {
+    function buyQuoteNOM(uint256 amountNOM) public view returns(uint256) {
         uint256 supplyTop = SafeMath.add(supplyNOM, amountNOM);
         uint256 amountETH = NOMSupToETH(supplyTop, supplyNOM);
         return SafeMath.sub(amountETH, SafeMath.div(amountETH, uint256(100)));
@@ -228,6 +228,7 @@ contract BondingNOM is Ownable {
 
         // Update total supply released by Bonding Curve
         supplyNOM = SafeMath.add(supplyNOM, amountNOM);
+
         // Update current bond curve price
         priceBondCurve = priceAtSupply(supplyNOM);
 

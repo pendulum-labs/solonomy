@@ -38,11 +38,24 @@ module.exports = function(deployer) {
 
     const contAddrsJSON = JSON.stringify(contAddrs)
     
-    fs.writeFile('NOMAddrs.json', contAddrsJSON, function(err) {
+    fs.writeFile('../otrust/src/context/chain/NOMAddrs.json', contAddrsJSON, function(err) {
       if (err) {
           console.log(err);
       }
     });
+
+    fs.copyFile('./build/contracts/BondingNOM.json', '../otrust/src/context/chain/BondingNOM.json', function(err) {
+      if (err) {
+          console.log(err);
+      }
+    });
+
+    fs.copyFile('./build/contracts/ERC20NOM.json', '../otrust/src/context/chain/ERC20NOM.json', function(err) {
+      if (err) {
+          console.log(err);
+      }
+    });
+    
     console.log('\n\n*************************************************************************\n')
     console.log(`Contract address saved to json`)
     console.log('\n*************************************************************************\n')

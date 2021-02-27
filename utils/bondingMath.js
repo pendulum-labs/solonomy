@@ -17,43 +17,14 @@ function cubeRoot(bigNumber) {
     return ethers.BigNumber.from(root.round().toString())
 }
 
-// Bonding curve price at specified supply
-function supplyAtPrice(price) {
-    return Math.sqrt(price) * a;
-}
-
 // Supply entered as NOM
 function priceAtSupply(supply) {
     return (supply/a)**2
 }
 
-// NOM supply range to ETH
-function NOMsupplyETH(supplyTop, supplyBot) {
-    // Integrate over curve to get amount of ETH needed to buy amount of NOM
-    // ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)
-    return (a/3)*((supplyTop/a)**3 - (supplyBot/a)**3)
-}
-
-// Returns Buy Quote for the purchase of NOM based on amount of ETH
-// Parameters:
-// Input
-// amount: amount of ETH
-// Output
-// output: amount of NOM
-function ETHtoNOM(amount, supply) {
-  const price = priceAtSupply(supply)
-  // 1. Determine supply bottom
-  // Price bottom is 1% above priceBondCurve
-  const priceBot = price * 1.01
-  const supplyBot = supplyAtPrice(priceBot);
-  // 2. Integrate over curve, and solve for supply top
-  // (3*ETH/a + (supplyNOM_Bot/a)^3)^(1/3)
-  const supplyTop = a*(3*amount/a + supplyBot**3/a**3)**(1/3)
-  console.log("supply top: ", supplyTop)
-  // 3. Subtract supply bottom from top to get amount NOM for amount ETH
-  const diff = supplyTop - supplyBot
-  console.log("diff", diff)
-  return { supplyBot, supplyTop, diff }
+// Bonding curve price at specified supply
+function supplyAtPrice(price) {
+    return Math.sqrt(price) * a;
 }
 
 // NOM supply range to ETH
@@ -72,7 +43,7 @@ function NOMSupToETH(supplyTop, supplyBot) {
 // uint256 buyAmount: amount of NOM to be purchased in 18 decimal
 // Output
 // uint256: amount of ETH needed in Wei or ETH 18 decimal
-function quoteNOM(amountNOM, supplyNOM) {
+function buyQuoteNOM(amountNOM, supplyNOM) {
     supplyTop = supplyNOM + amountNOM;
     return  NOMSupToETH(supplyTop, supplyNOM)*(.99);
 }
@@ -109,4 +80,4 @@ function sellQuoteNOM(amountNOM, supplyNOM) {
     return amountETH*.99;
 }
 
-module.exports = { cubeRoot, priceAtSupply, ETHtoNOM, supplyAtPrice, NOMSupToETH, quoteNOM, buyQuoteETH, sellQuoteNOM }
+module.exports = { cubeRoot, priceAtSupply, supplyAtPrice, NOMSupToETH, buyQuoteNOM, buyQuoteETH, sellQuoteNOM }

@@ -99,8 +99,8 @@ contract("Bonding Curve Tests", async accounts => {
     let testAmount = Math.random()*10**8;
     const inputCont = ethers.utils.parseEther(testAmount.toString())
     let supplyNOM = await bondCont.getSupplyNOM.call();
-    let quoteCont = await bondCont.quoteNOM.call(inputCont.toString());
-    let quoteJs = bondingMath.quoteNOM(testAmount, supplyNOM.toString());
+    let quoteCont = await bondCont.buyQuoteNOM.call(inputCont.toString());
+    let quoteJs = bondingMath.buyQuoteNOM(testAmount, supplyNOM.toString());
     console.log("** Buy Quote given NOM Test **");
     console.log("Test Input: ", inputCont.toString());
     console.log("Quote Contract: ", ethers.utils.formatEther(quoteCont.toString()));
@@ -218,7 +218,7 @@ contract("Bonding Curve Tests", async accounts => {
     console.log("Buy Quote: ", ethers.utils.formatEther(result1.toString()))
     let result2 = await bondCont.buyNOM({from: accounts[1], value: inputCont.toString()})
     let balance = await tokenCont.balanceOf(accounts[1])
-    console.log("Account 0 NOM: ", ethers.utils.formatEther(balance.toString()))
+    console.log("Account 1 NOM: ", ethers.utils.formatEther(balance.toString()))
     let balContNOM = await tokenCont.balanceOf(bondCont.address)
     console.log("Contract NOM Before: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
     console.log("Contract NOM After: ", ethers.utils.formatEther(balContNOM.toString()))
@@ -253,6 +253,7 @@ contract("Bonding Curve Tests", async accounts => {
     let result7 = await bondCont.withdraw({from: accounts[0]});
     let balAcctETH2 = await web3.eth.getBalance(accounts[0])
     console.log("Account 0 ETH After: ", balAcctETH2)
+    let balance1 = await tokenCont.balanceOf(accounts[0])
     assert.equal(balance3.toString(), "0")
   });
 });
