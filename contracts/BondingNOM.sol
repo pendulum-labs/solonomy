@@ -14,6 +14,8 @@ interface ERC20Token {
   function transfer(address, uint256) external returns (bool);
 }
 
+/// @title wNOM Bonding Contract
+/// @author Charles Dusek
 contract BondingNOM is Ownable {
     ERC20Token nc; // NOM contract (nc)
 
