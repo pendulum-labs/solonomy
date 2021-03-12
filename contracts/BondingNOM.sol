@@ -26,6 +26,7 @@ contract BondingNOM is Ownable {
     // Bonding Curve parameter
     uint256 public a = SafeMath.mul(100000000, 10**decimals);
 
+    event Transaction(address indexed _by, uint256 amountNOM, uint256 amountETH, uint256 price, uint256 supply, string buyOrSell);
    
 
     constructor (address NOMContAddr) {
@@ -232,6 +233,8 @@ contract BondingNOM is Ownable {
         // Update current bond curve price
         priceBondCurve = priceAtSupply(supplyNOM);
 
+        emit Transaction(msg.sender, amountNOM, msg.value, priceBondCurve, supplyNOM, "buy");
+
         nc.transfer(msg.sender, amountNOM);
     }
 
@@ -265,6 +268,8 @@ contract BondingNOM is Ownable {
         // Update current bond curve price
         priceBondCurve = priceAtSupply(supplyNOM);
         
+        emit Transaction(msg.sender, amountNOM, amountETH, priceBondCurve, supplyNOM, "sell");
+
         // Transfer ETH to Sender
         payable(msg.sender).transfer(amountETH);
     }
