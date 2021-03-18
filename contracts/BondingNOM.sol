@@ -29,7 +29,8 @@ contract BondingNOM is Ownable {
     uint256 public a = SafeMath.mul(100000000, 10**decimals);
 
     event Transaction(address indexed _by, uint256 amountNOM, uint256 amountETH, uint256 price, uint256 supply, string buyOrSell);
-   
+    event PriceChanged(uint256 price);
+    event SupplyChanged(uint256 supply);
 
     constructor (address NOMContAddr) {
         // Add in the NOM ERC20 contract address
@@ -236,6 +237,8 @@ contract BondingNOM is Ownable {
         priceBondCurve = priceAtSupply(supplyNOM);
 
         emit Transaction(msg.sender, amountNOM, msg.value, priceBondCurve, supplyNOM, "buy");
+        emit PriceChanged(priceBondCurve);
+        emit SupplyChanged(supplyNOM);
 
         nc.transfer(msg.sender, amountNOM);
     }
@@ -271,6 +274,8 @@ contract BondingNOM is Ownable {
         priceBondCurve = priceAtSupply(supplyNOM);
         
         emit Transaction(msg.sender, amountNOM, amountETH, priceBondCurve, supplyNOM, "sell");
+        emit PriceChanged(priceBondCurve);
+        emit SupplyChanged(supplyNOM);
 
         // Transfer ETH to Sender
         payable(msg.sender).transfer(amountETH);
