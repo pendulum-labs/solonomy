@@ -16,9 +16,17 @@
     "decimal.js-light": "^2.5.1",
     "ethers": "^5.0.29"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "hardhat": "^2.1.1"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "run-node": "hardhat node",
+    "compile": "hardhat compile",
+    "deploy:local": "hardhat run ./scripts/deployContracts.js --network localhost",
+    "deploy:mainnet": "hardhat run ./scripts/deployContracts.js --network mainnet",
+    "test": "hardhat test --network localhost"
   },
   "repository": {
     "type": "git",
