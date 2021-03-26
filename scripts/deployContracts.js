@@ -18,8 +18,8 @@ async function main() {
 
   const { ethers } = hre;
 
-  const NOMtokenArtifact = await ethers.getContractFactory("ERC20NOM");
-  const NOMtoken = await NOMtokenArtifact.deploy();
+  const NOMtokenFactory = await ethers.getContractFactory("ERC20NOM");
+  const NOMtoken = await NOMtokenFactory.deploy();
 
   await NOMtoken.deployed();
 
@@ -35,8 +35,8 @@ async function main() {
   console.log('\n*************************************************************************\n')
    */
 
-  const BondNOMArtifact = await ethers.getContractFactory("BondingNOM");
-  const BondingNOM = await BondNOMArtifact.deploy(NOMtoken.address);
+  const BondNOMFactory = await ethers.getContractFactory("BondingNOM");
+  const BondingNOM = await BondNOMFactory.deploy(NOMtoken.address);
 
   await BondingNOM.deployed();
 
