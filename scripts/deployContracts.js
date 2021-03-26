@@ -55,6 +55,20 @@ async function main() {
 
   const contAddrsJSON = JSON.stringify(contAddrs)
 
+  console.log('\n***************************Verifying Contracts**************************\n')
+  await hre.run("verify:verify", {
+    address: NOMtoken.address,
+    constructorArguments: [],
+  })
+
+  await hre.run("verify:verify", {
+    address: BondingNOM.address,
+    constructorArguments: [
+      NOMtoken.address
+    ],
+  })
+  console.log('\n*************************~Successfully Verified~*************************\n')
+
   fs.writeFile('../otrust/src/context/chain/NOMAddrs.json', contAddrsJSON, function(err) {
     if (err) {
         console.log(err);
