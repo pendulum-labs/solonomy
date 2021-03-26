@@ -2,10 +2,7 @@
   "name": "solonomy",
   "version": "0.0.1",
   "description": "Onomy Ethereum Deployment",
-  "main": "truffle-config.js",
-  "directories": {
-    "test": "test"
-  },
+  "main": "hardhat.config.js",
   "dependencies": {
     "@openzeppelin/contracts": "^3.4.0-solc-0.7",
     "@truffle/hdwallet-provider": "^1.2.2",
@@ -30,6 +27,7 @@
     "compile": "hardhat compile",
     "deploy:local": "hardhat run ./scripts/deployContracts.js --network localhost",
     "deploy:mainnet": "hardhat run ./scripts/deployContracts.js --network mainnet",
+    "deploy:rinkeby": "hardhat run ./scripts/deployContracts.js --network rinkeby",
     "test": "hardhat test --network hardhat"
   },
   "repository": {

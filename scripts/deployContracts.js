@@ -41,7 +41,7 @@ async function main() {
   await BondingNOM.deployed();
 
   let numTokens = ethers.BigNumber.from(10).pow(18).mul('100000000')
-  let result = await NOMtoken.transfer(BondingNOM.address, numTokens.toString());
+  await NOMtoken.transfer(BondingNOM.address, numTokens.toString());
   let balance = await NOMtoken.balanceOf(BondingNOM.address)
   console.log('\n*************************************************************************\n')
   console.log(`NOM Bonding Contract Address: ${BondingNOM.address}`)
