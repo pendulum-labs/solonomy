@@ -1,7 +1,10 @@
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-ethers");
+require("@nomiclabs/hardhat-etherscan");
 require("hardhat-deploy");
 require("hardhat-deploy-ethers");
+require("dotenv").config();
+
 const fs = require('fs');
 const mnemonic = fs.readFileSync(".secret").toString().trim() || '';
 
@@ -67,9 +70,13 @@ module.exports = {
     sources: "./contracts",
     tests: "./test",
     cache: "./cache",
-    artifacts: "./artifacts",
   },
   mocha: {
     timeout: 300000,
   },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: process.env.ETHERSCAN_API_KEY
+  }
 };
