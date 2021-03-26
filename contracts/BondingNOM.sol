@@ -9,7 +9,7 @@ import "abdk-libraries-solidity/ABDKMath64x64.sol";
 interface ERC20Token {
   function allowance(address, address) external returns (uint256);
   function balanceOf(address) external returns (uint256);
-  function totalSupply() external returns (uint256);
+  function totalSupply() external view returns (uint256);
   function transferFrom(address, address, uint256) external returns (bool);
   function transfer(address, uint256) external returns (bool);
 }
@@ -119,8 +119,7 @@ contract BondingNOM is Ownable {
             )
         );
     }
-                
-    
+
     // Returns quote for a particular amount of NOM (Dec 18) in ETH (Dec 18)
     // 1. Determine supply range based on spread and current curve price based on supplyNOM
     // 2. Integrate over curve to get amount of ETH needed to buy amount of NOM
@@ -159,7 +158,7 @@ contract BondingNOM is Ownable {
         else {
         uint256 xx = x;
         uint256 r = 1;
-        
+
         if (xx >= 0x1000000000000000000000000000000000000) { xx >>= 144; r <<= 48; }
         if (xx >= 0x1000000000000000000) { xx >>= 72; r <<= 24; }
         if (xx >= 0x1000000000) { xx >>= 36; r <<= 12; }
@@ -276,7 +275,7 @@ contract BondingNOM is Ownable {
         payable(msg.sender).transfer(amountETH);
     }
 
-    function teamBalance() public returns(uint256) {
+    function teamBalance() public view returns(uint256) {
         if (supplyNOM == 0) {
             return address(this).balance;
         }

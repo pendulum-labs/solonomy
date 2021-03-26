@@ -1,6 +1,7 @@
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-ethers");
-
+require("hardhat-deploy");
+require("hardhat-deploy-ethers");
 const fs = require('fs');
 const mnemonic = fs.readFileSync(".secret").toString().trim() || '';
 
@@ -25,7 +26,6 @@ module.exports = {
   networks: {
     localhost: {
       uri: "http://127.0.0.1:8545",
-      chainId: 1337,
     },
     mainnet: {
       url: "https://mainnet.infura.io/v3/a9087b23250f4140b83f7cb3682cf30b",
@@ -36,20 +36,22 @@ module.exports = {
     },
     rinkeby: {
       url: 'https://rinkeby.infura.io/v3/a9087b23250f4140b83f7cb3682cf30b',
-      chainID: 4,          // rinkeby's id
+      chainID: 4, // rinkeby's id
       accounts: {
         mnemonic: mnemonic,
       }
     },
     hardhat: {
-      forking: {
-        url: "https://mainnet.infura.io/v3/a9087b23250f4140b83f7cb3682cf30b",
-      },
-      accounts: {
-        mnemonic: mnemonic,
-        accountsBalance: "10000000000000000000000",
-      },
-      chainId: 1337,
+      // @note Uncomment the below codes to fork the mainnet to localnetwork
+      //       While testing on the mainnet forked network we can interact with other contracts
+      //       Which are available on mainnet
+      // forking: {
+      //   url: "https://mainnet.infura.io/v3/a9087b23250f4140b83f7cb3682cf30b",
+      // },
+      // accounts: {
+      //   mnemonic: mnemonic,
+      //   accountsBalance: "10000000000000000000000",
+      // },
     },
   },
   solidity: {
