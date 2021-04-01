@@ -28,7 +28,7 @@ contract BondingNOM is Ownable {
     // Bonding Curve parameter
     uint256 public a = SafeMath.mul(100000000, 10**decimals);
 
-    event Transaction(address indexed _by, uint256 amountNOM, uint256 amountETH, uint256 price, uint256 supply, string buyOrSell);
+    event Transaction(address indexed _by, uint256 amountNOM, uint256 amountETH, uint256 price, uint256 supply, string buyOrSell, int128 slippage);
    
 
     constructor (address NOMContAddr) {
@@ -224,17 +224,42 @@ contract BondingNOM is Ownable {
         return supplyTop - supplyNOM;
     }
 
-    function buyNOM() public payable {
+    function abs(int128 x) private pure returns (int128) {
+        return x >= 0 ? x : -x;
+    }
+
+
+    function buyNOM(uint256 estAmountNOM, uint256 allowSlip) public payable {
         require(msg.value > 0, "No ETH");
         uint256 amountNOM = buyQuoteETH(msg.value);
 
+        // Positive slippage is bad.  Negative slippage is good.
+        // Positive slippage means we will receive less NOM than estimated
+        int128 slippage = estAmountNOM - amountNOM;
+
+        if (slippage > int128(0)) {
+            // Check for slippage. Int128 used because slippage may be positive or negative
+            require(
+                abs(slippage) < 
+                    int128(
+                        SafeMath.mul(
+                            // Divide by 1000 because we multiplied the percentage
+                            // by 10^4 before sending
+                            SafeMath.div(estAmountNOM, 10000),
+                            allowSlip
+                        )   
+                    ),
+                "Slippage greater than allowed"
+            );
+        }
+           
         // Update total supply released by Bonding Curve
         supplyNOM = SafeMath.add(supplyNOM, amountNOM);
 
         // Update current bond curve price
         priceBondCurve = priceAtSupply(supplyNOM);
 
-        emit Transaction(msg.sender, amountNOM, msg.value, priceBondCurve, supplyNOM, "buy");
+        emit Transaction(msg.sender, amountNOM, msg.value, priceBondCurve, supplyNOM, "buy", slippage);
 
         nc.transfer(msg.sender, amountNOM);
     }
@@ -255,10 +280,32 @@ contract BondingNOM is Ownable {
         return SafeMath.sub(amountETH, SafeMath.div(amountETH, uint256(100)));
     }
 
-    function sellNOM(uint256 amountNOM) public {
+    // allowSlip is a percentage represented as an percentage * 10^2 with a 2 decimal fixed point
+    // 1% would be uint256 representation of 0100, 1.25% would be 0125, 25.5% would be 2550
+    function sellNOM(uint256 amountNOM, uint256 estAmountETH, uint256 allowSlip) public {
         require(nc.allowance(msg.sender, address(this)) >= amountNOM, "sender has not enough allowance");
 
         uint256 amountETH = sellQuoteNOM(amountNOM);
+        
+        // Positive slippage is bad.  Negative slippage is good.
+        // Positive slippage means we will receive less ETH than estimated
+        int128 slippage = estAmountETH - amountETH;
+
+        if (slippage > int128(0)) {
+            // Check for slippage. Int128 used because slippage may be positive or negative
+            require(
+                abs(slippage) < 
+                    int128(
+                        SafeMath.mul(
+                            // Divide by 1000 because we multiplied the percentage
+                            // by 10^4 before sending
+                            SafeMath.div(estAmountNOM, 10000), 
+                            allowSlip
+                        )   
+                    ),
+                "Slippage greater than allowed"
+            );
+        }
 
         // Transfer NOM to contract
         nc.transferFrom(msg.sender, address(this), amountNOM);
@@ -269,7 +316,7 @@ contract BondingNOM is Ownable {
         // Update current bond curve price
         priceBondCurve = priceAtSupply(supplyNOM);
         
-        emit Transaction(msg.sender, amountNOM, amountETH, priceBondCurve, supplyNOM, "sell");
+        emit Transaction(msg.sender, amountNOM, amountETH, priceBondCurve, supplyNOM, "sell", slippage);
 
         // Transfer ETH to Sender
         payable(msg.sender).transfer(amountETH);
