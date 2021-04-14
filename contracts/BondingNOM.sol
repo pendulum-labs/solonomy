@@ -147,14 +147,6 @@ contract BondingNOM is Ownable {
         return amountETH.sub(amountETH.div(100));
     }
 
-    /// @return Return cubrt(x) rounding down, where x is int128 integer
-    /// @param x signed 64.64-bit fixed point number
-    function cubrt (int128 x) public pure returns (int128) {
-        require (x >= 0);
-        return int128 (cubrtu (uint256 (x) << 64));
-    }
-
-
     /// @return Return cubrtu(x) rounding down, where x is unsigned 256-bit integer
     /// @param x unsigned 256-bit integer number
     function cubrtu (uint256 x) public pure returns (uint256) {
