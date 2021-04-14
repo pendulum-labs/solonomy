@@ -27,7 +27,7 @@ contract BondingNOM is Ownable {
     uint8 public decimals = 18;
     uint256 public a = SafeMath.mul(100000000, 10**decimals);
 
-    event Transaction(address indexed _by, uint256 amountNOM, uint256 amountETH, uint256 price, uint256 supply, string buyOrSell, int128 slippage);
+    event Transaction(address indexed _by, uint256 amountNOM, uint256 amountETH, uint256 price, uint256 supply, string buyOrSell, int256 slippage);
 
     constructor (address NOMContAddr) {
         // Add in the NOM ERC20 contract address
@@ -220,20 +220,19 @@ contract BondingNOM is Ownable {
 
         // Positive slippage is bad.  Negative slippage is good.
         // Positive slippage means we will receive less NOM than estimated
-        int128 slippage = int128(estAmountNOM.sub(amountNOM));
-
-        if (slippage > int128(0)) {
-            // Check for slippage. Int128 used because slippage may be positive or negative
+        if(estAmountNOM > amountNOM) {
             require(
-                abs(slippage) < 
-                    int128(
-                        // Divide by 1000 because we multiplied the percentage
-                        // by 10^4 before sending
-                        estAmountNOM.div(10000).mul(allowSlip)
-                    ),
+                // Slippage
+                estAmountNOM.sub(amountNOM)
+                <
+                // Allowed slippage
+                estAmountNOM.div(10000).mul(allowSlip)
+                ,
                 "Slippage greater than allowed"
             );
         }
+
+        int256 slippage = int256(estAmountNOM) - int256(amountNOM);
 
         // Update total supply released by Bonding Curve
         supplyNOM = supplyNOM.add(amountNOM);
@@ -268,21 +267,20 @@ contract BondingNOM is Ownable {
         uint256 amountETH = sellQuoteNOM(amountNOM);
 
         // Positive slippage is bad.  Negative slippage is good.
-        // Positive slippage means we will receive less ETH than estimated
-        int128 slippage = int128(estAmountETH.sub(amountETH));
-
-        if (slippage > int128(0)) {
-            // Check for slippage. Int128 used because slippage may be positive or negative
+        // Positive slippage means we will receive less NOM than estimated
+        if(estAmountETH > amountETH) {
             require(
-                abs(slippage) < 
-                    int128(
-                        // Divide by 1000 because we multiplied the percentage
-                        // by 10^4 before sending
-                        estAmountETH.div(10000).mul(allowSlip)
-                    ),
+                // Slippage
+                estAmountETH.sub(amountETH)
+                <
+                // Allowed slippage
+                estAmountETH.div(10000).mul(allowSlip)
+                ,
                 "Slippage greater than allowed"
             );
         }
+
+        int256 slippage = int256(estAmountETH) - int256(amountETH);
 
         // Transfer NOM to contract
         nc.transferFrom(msg.sender, address(this), amountNOM);
