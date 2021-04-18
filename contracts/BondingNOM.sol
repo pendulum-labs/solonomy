@@ -154,14 +154,14 @@ contract BondingNOM is Ownable {
         else {
             uint256 xx = x;
             uint256 r = 1;
-            if (xx >= 0x1000000000000000000000000000000000000) { xx >>= 144; r <<= 48; }
-            if (xx >= 0x1000000000000000000) { xx >>= 72; r <<= 24; }
-            if (xx >= 0x1000000000) { xx >>= 36; r <<= 12; }
-            if (xx >= 0x40000) { xx >>= 18; r <<= 6; }
-            if (xx >= 0x1000) { xx >>= 12; r <<= 4; }
-            if (xx >= 0x200) { xx >>= 9; r <<= 3; }
-            if (xx >= 0x40) { xx >>= 6; r <<= 2; }
-            if (xx >= 0x8) { r <<= 1; }
+            if (xx >= 0x1000000000000000000000000000000000000) {xx >>= 144; r <<= 48;}
+            if (xx >= 0x1000000000000000000) {xx >>= 72; r <<= 24;}
+            if (xx >= 0x1000000000) {xx >>= 36; r <<= 12;}
+            if (xx >= 0x40000) {xx >>= 18; r <<= 6;}
+            if (xx >= 0x1000) {xx >>= 12; r <<= 4;}
+            if (xx >= 0x200) {xx >>= 9; r <<= 3;}
+            if (xx >= 0x40) {xx >>= 6; r <<= 2;}
+            if (xx >= 0x8) {r <<= 1;}
             r = (x/(r**2) + 2*r)/3;
             r = (x/(r**2) + 2*r)/3;
             r = (x/(r**2) + 2*r)/3;
@@ -214,6 +214,8 @@ contract BondingNOM is Ownable {
         return x >= 0 ? x : -x;
     }
 
+    /// @param estAmountNOM amount of NOM
+    /// @param allowSlip amount of slippage allowed in 0100 means 1%
     function buyNOM(uint256 estAmountNOM, uint256 allowSlip) public payable {
         require(msg.value > 0, "No ETH");
         uint256 amountNOM = buyQuoteETH(msg.value);

@@ -178,7 +178,7 @@ describe("Bonding Curve Tests", function () {
     let result1 = await BondingNOM.buyQuoteETH(inputCont.toString());
     console.log("Buy Quote: ", ethers.utils.formatEther(result1.toString()))
 
-    let result2 = await BondingNOM.connect(accounts[1]).buyNOM({value: inputCont})
+    let result2 = await BondingNOM.connect(accounts[1]).buyNOM(result1.toString(), "0100", {value: inputCont})
 
     let balance = await NOMtoken.balanceOf(accounts[1].address)
     console.log("Account 0 NOM: ", balance.toString())
@@ -203,7 +203,7 @@ describe("Bonding Curve Tests", function () {
     console.log("Ether sent: ", inputCont.toString())
     let result1 = await BondingNOM.buyQuoteETH(inputCont.toString());
     console.log("Buy Quote: ", ethers.utils.formatEther(result1.toString()))
-    let result2 = await BondingNOM.connect(accounts[1]).buyNOM({value: inputCont})
+    let result2 = await BondingNOM.connect(accounts[1]).buyNOM(result1.toString(), "0100", {value: inputCont})
     let balance = await NOMtoken.balanceOf(accounts[1].address)
     console.log("Account 0 NOM: ", ethers.utils.formatEther(balance.toString()))
     let balContNOM = await NOMtoken.balanceOf(BondingNOM.address)
@@ -243,7 +243,7 @@ describe("Bonding Curve Tests", function () {
     console.log("Ether sent: ", inputCont.toString())
     let result1 = await BondingNOM.buyQuoteETH(inputCont.toString());
     console.log("Buy Quote: ", ethers.utils.formatEther(result1.toString()))
-    let result2 = await BondingNOM.connect(accounts[1]).buyNOM({value: inputCont})
+    let result2 = await BondingNOM.connect(accounts[1]).buyNOM(result1.toString(), "0100", {value: inputCont})
     let balance = await NOMtoken.balanceOf(accounts[1].address)
     console.log("Account 1 NOM: ", ethers.utils.formatEther(balance.toString()))
     let balContNOM = await NOMtoken.balanceOf(BondingNOM.address)
@@ -266,7 +266,7 @@ describe("Bonding Curve Tests", function () {
     let result4 = await NOMtoken.connect(accounts[1]).increaseAllowance(BondingNOM.address, balance2.toString())
     let result5 = await NOMtoken.allowance(accounts[1].address, BondingNOM.address);
     console.log("Account NOM Allowance: ", result5.toString())
-    let result6 = await BondingNOM.connect(accounts[1]).sellNOM(balance2.toString())
+    let result6 = await BondingNOM.connect(accounts[1]).sellNOM(balance2.toString(), result3.toString(), "0100")
     let balance3 = await NOMtoken.balanceOf(accounts[1].address)
     console.log("Account NOM After: ", ethers.utils.formatEther(balance3.toString()))
     let balContNOM3 = await NOMtoken.balanceOf(BondingNOM.address)
