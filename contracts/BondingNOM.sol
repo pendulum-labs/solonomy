@@ -23,7 +23,6 @@ contract BondingNOM is Ownable {
     address public NOMTokenContract;
     uint256 public supplyNOM = 0;
     uint256 public priceBondCurve = 0;
-    uint128 private constant MAX_64x64 = 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
     uint8 public decimals = 18;
     uint256 public a = SafeMath.mul(100000000, 10**decimals);
 
