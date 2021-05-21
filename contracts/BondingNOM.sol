@@ -178,6 +178,7 @@ contract BondingNOM is Ownable {
     /// 2. Integrate over curve, and solve for supply top supplyNOM_Top = a*(3*ETH/a + (supplyNOM_Bot/a)^3)^(1/3)
     /// 3. Subtract supply bottom from top to get #NOM for ETH
     function buyQuoteETH(uint256 amountETH) public view returns(uint256) {
+        require(amountETH > 100, "Amount not exceeding cutoff");
         uint256 amountNet = amountETH.sub(amountETH.div(100));
         uint256 supplyTop = // supplyNOM_Top = (a^2*(3*ETH + (supplyNOM_Bot/a)^2*supplyNOM_Bot))^(1/3)
             cubrtu(
@@ -254,6 +255,7 @@ contract BondingNOM is Ownable {
     function sellQuoteNOM(uint256 amountNOM) public view returns(uint256) {
         uint256 supplyBot = supplyNOM.sub(amountNOM);
         uint256 amountETH = NOMSupToETH(supplyNOM, supplyBot);
+        require(amountETH > 100, "Amount not exceeding cutoff");
         return amountETH.sub(amountETH.div(100));
     }
 
