@@ -98,6 +98,8 @@ contract BondingNOM is Ownable {
     /// @notice Formula: `ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)`
     /// Integrate over a curve to get the amount of ETH needed to buy the amount of NOM
     function NOMSupToETH(uint256 supplyTop, uint256 supplyBot) public view returns(uint256) {
+        if (supplyTop - supplyBot == 0) return 0;
+
         require(supplyTop > supplyBot, "Supply Top is not greater than Supply Bot");
         return f64ToTok(
             ABDKMath64x64.mul(
@@ -141,6 +143,8 @@ contract BondingNOM is Ownable {
     /// Output
     /// uint256: amount of ETH needed in Wei or ETH 18 decimal
     function buyQuoteNOM(uint256 amountNOM) public view returns(uint256) {
+        if (amountNOM == 0) return 0;
+
         uint256 supplyTop = supplyNOM.add(amountNOM);
         uint256 amountETH = NOMSupToETH(supplyTop, supplyNOM);
         return amountETH.sub(amountETH.div(100));
@@ -178,6 +182,8 @@ contract BondingNOM is Ownable {
     /// 2. Integrate over curve, and solve for supply top supplyNOM_Top = a*(3*ETH/a + (supplyNOM_Bot/a)^3)^(1/3)
     /// 3. Subtract supply bottom from top to get #NOM for ETH
     function buyQuoteETH(uint256 amountETH) public view returns(uint256) {
+        if (amountETH == 0) return 0;
+
         uint256 amountNet = amountETH.sub(amountETH.div(100));
         uint256 supplyTop = // supplyNOM_Top = (a^2*(3*ETH + (supplyNOM_Bot/a)^2*supplyNOM_Bot))^(1/3)
             cubrtu(
@@ -252,6 +258,8 @@ contract BondingNOM is Ownable {
     /// 2. Integrate over curve to find ETH: `ETH = a/3((supplyNOM_Top/a)^3 - (supplyNOM_Bot/a)^3)`
     /// 3. Subtract supply bottom from top to get #NOM for ETH
     function sellQuoteNOM(uint256 amountNOM) public view returns(uint256) {
+        if (amountNOM == 0) return 0;
+        
         uint256 supplyBot = supplyNOM.sub(amountNOM);
         uint256 amountETH = NOMSupToETH(supplyNOM, supplyBot);
         return amountETH.sub(amountETH.div(100));

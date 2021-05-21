@@ -33,8 +33,10 @@ describe("Bonding Curve Tests", function () {
 
     let numTokens = ethers.BigNumber.from(10).pow(18).mul('100000000')
     await NOMtoken.transfer(BondingNOM.address, numTokens.toString());
+    let balance = await NOMtoken.balanceOf(BondingNOM.address)
     console.log('\n*************************************************************************\n')
     console.log(`NOM Bonding Contract Address: ${BondingNOM.address}`)
+    console.log(`NOM Bonding Contract NOM Balance: ${balance}`)
     console.log('\n*************************************************************************\n')
 
     contAddrs = {
@@ -143,6 +145,52 @@ describe("Bonding Curve Tests", function () {
       ) < 10^(-9));
   });
 
+  it("should give zero amount of NOM for zero amount of ETH", async () => {
+    let contractBalance = await NOMtoken.balanceOf(BondingNOM.address);
+    let supplyNOM = await BondingNOM.getSupplyNOM();
+    console.log("** Buy Quote given ETH test **");
+    console.log("Contract Balance: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
+    console.log("NOM Issued by contract: ", supplyNOM.toString());
+    console.log("Ether sent: ", '0')
+    let quoteContRaw = await BondingNOM.buyQuoteETH('0');
+    let quoteCont = ethers.utils.formatEther(quoteContRaw.valueOf().toString())
+    console.log("Quote in NOM: ", quoteCont)
+    console.log("Difference: ", Math.abs(
+      quoteCont - 0
+    ))
+    assert.ok(
+      Math.abs(
+        quoteCont - 0
+      ) < 10^(-9)
+    );
+  });
+
+  it("should give small amount of NOM for small amount of ETH", async () => {
+    let contractBalance = await NOMtoken.balanceOf(BondingNOM.address);
+    let supplyNOM = await BondingNOM.getSupplyNOM();
+    console.log("** Buy Quote given ETH test **");
+    console.log("Contract Balance: ", ethers.utils.formatEther(contractBalance.valueOf().toString()))
+    console.log("NOM Issued by contract so far: ", supplyNOM.toString());
+    console.log("Wei sent: ", '1')
+    let quoteContRaw = await BondingNOM.buyQuoteETH('1');
+    let quoteCont = ethers.utils.formatEther(quoteContRaw.valueOf().toString())
+    console.log("Quote in NOM (normal): ", quoteCont)
+    let quoteJs = 
+      bondingMath.buyQuoteETH(
+        (1)/(10**18), 
+        ethers.utils.formatEther(supplyNOM.toString()).toString()
+      )
+    console.log("JS NOM: ", quoteJs.toString())
+    console.log("Difference: ", Math.abs(
+      quoteCont - quoteJs
+    ))
+    assert.ok(
+      Math.abs(
+        quoteCont - 0
+      ) < 10^(-3)
+    );
+  });
+
   it("should give purchase amount of NOM for an amount of ETH", async () => {
     let amountETH = Math.random()*10**5;
     let inputCont = ethers.utils.parseEther(amountETH.toString())
@@ -231,6 +279,20 @@ describe("Bonding Curve Tests", function () {
       ) < 10^(-9)
     );
 
+    console.log("** Sell NOM Zero Quote Test **")
+    console.log("SupplyNOM: ", ethers.utils.formatEther(supplyNOM.valueOf().toString()))
+    let balance6 = await NOMtoken.balanceOf(accounts[1].address)
+    console.log("Account NOM Before: ", ethers.utils.formatEther(balance6.toString()))
+    let result5raw = await BondingNOM.sellQuoteNOM('0');
+    let result5 = ethers.utils.formatEther(result5raw.toString())
+    console.log("Sell Quote NOM Contract: ", result5)
+    console.log("Difference: ", result5 - 0)
+    
+    assert.ok(
+      Math.abs(
+        result5 - 0
+      ) < 10^(-9)
+    );
   })
 
   it("should allow purchase and sale of NOM", async () => {

@@ -6,6 +6,10 @@
 const hre = require("hardhat");
 const fs = require('fs');
 
+function timeout(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
   // line interface.
@@ -43,6 +47,13 @@ async function main() {
   let numTokens = ethers.BigNumber.from(10).pow(18).mul('100000000')
   await NOMtoken.transfer(BondingNOM.address, numTokens.toString());
   let balance = await NOMtoken.balanceOf(BondingNOM.address)
+  
+  do {
+    console.log("NOM Bonding Curve Contract Balance: ", balance.toString())
+    await timeout(5000)
+    balance = await NOMtoken.balanceOf(BondingNOM.address)
+  } while (balance !=  10**18*100000000)
+  
   console.log('\n*************************************************************************\n')
   console.log(`NOM Bonding Contract Address: ${BondingNOM.address}`)
   console.log(`NOM Bonding Contract NOM Balance: ${balance}`)
@@ -54,6 +65,7 @@ async function main() {
   }
 
   const contAddrsJSON = JSON.stringify(contAddrs)
+  console.log("Contract Addresses: ", contAddrsJSON)
 
   console.log('\n***************************Verifying Contracts**************************\n')
   await hre.run("verify:verify", {
@@ -69,23 +81,13 @@ async function main() {
   })
   console.log('\n*************************~Successfully Verified~*************************\n')
 
-  fs.writeFile('../otrust/src/context/chain/NOMAddrs.json', contAddrsJSON, function(err) {
-    if (err) {
-        console.log(err);
-    }
-  });
+  fs.writeFileSync('./NOMAddrs.json', contAddrsJSON)
 
-  fs.copyFile('./build/contracts/BondingNOM.json', '../otrust/src/context/chain/BondingNOM.json', function(err) {
-    if (err) {
-        console.log(err);
-    }
-  });
+  fs.writeFileSync('../otrust/src/context/chain/NOMAddrs.json', contAddrsJSON)
 
-  fs.copyFile('./build/contracts/ERC20NOM.json', '../otrust/src/context/chain/ERC20NOM.json', function(err) {
-    if (err) {
-        console.log(err);
-    }
-  });
+  fs.copyFileSync('./artifacts/contracts/BondingNOM.sol/BondingNOM.json', '../otrust/src/context/chain/BondingNOM.json')
+
+  fs.copyFileSync('./artifacts/contracts/ERC20NOM.sol/ERC20NOM.json', '../otrust/src/context/chain/ERC20NOM.json')
 
   console.log('\n\n*************************************************************************\n')
   console.log(`Contract address saved to json`)
