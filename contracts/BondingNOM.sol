@@ -271,7 +271,8 @@ contract BondingNOM is Ownable {
     /// 1% would be uint256 representation of 0100, 1.25% would be 0125, 25.5% would be 2550
     /// @notice Transfer ETH worth amount of NOM to msg.sender
     function sellNOM(uint256 amountNOM, uint256 estAmountETH, uint256 allowSlip) public payable {
-        require(nc.allowance(msg.sender, address(this)) >= amountNOM, "sender has not enough allowance");
+        require(amountNOM <= supplyNOM, "Amount greater than outstanding supply");
+        require(amountNOM <= nc.allowance(msg.sender, address(this)), "sender has not enough allowance");
 
         uint256 amountETH = sellQuoteNOM(amountNOM);
 
@@ -280,11 +281,8 @@ contract BondingNOM is Ownable {
         if(estAmountETH > amountETH) {
             require(
                 // Slippage
-                estAmountETH.sub(amountETH)
-                <
-                // Allowed slippage
-                estAmountETH.div(10000).mul(allowSlip)
-                ,
+                estAmountETH.sub(amountETH) <
+                estAmountETH.div(10000).mul(allowSlip),
                 "Slippage greater than allowed"
             );
         }

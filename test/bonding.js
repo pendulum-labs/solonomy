@@ -328,6 +328,8 @@ describe("Bonding Curve Tests", function () {
     let result4 = await NOMtoken.connect(accounts[1]).increaseAllowance(BondingNOM.address, balance2.toString())
     let result5 = await NOMtoken.allowance(accounts[1].address, BondingNOM.address);
     console.log("Account NOM Allowance: ", result5.toString())
+    let supNOM = await BondingNOM.getSupplyNOM()
+    console.log("Supply NOM: ", supNOM.toString())
     let result6 = await BondingNOM.connect(accounts[1]).sellNOM(balance2.toString(), result3.toString(), "0100")
     let balance3 = await NOMtoken.balanceOf(accounts[1].address)
     console.log("Account NOM After: ", ethers.utils.formatEther(balance3.toString()))
