@@ -62,10 +62,20 @@ contract BondingNOM is Ownable {
         return ABDKMath64x64.mulu(fixed64, 10**uint256(decimals));
     }
 
+    /// @return Return the amount of burned wNOM
+    /// @notice Formula: totalSupply[initial] - totalSupply[now]
+    function burnedNOM() public view returns(uint256) {
+        return  a.sub(nc.totalSupply());
+    }
+
     /// @return Return the token price base on the input supply amount
     /// @param _supplyNOM token supply amount in uint256
     /// @notice Formula: `ETH/NOM = pow(_supplyNOM/a, 2)`  Using this function, everyone can predict the exact price base on token supply
     function priceAtSupply(uint256 _supplyNOM) public view returns(uint256) {
+        if (_supplyNOM == 0) return 0;
+
+        require(_supplyNOM <= a, "Bonding Curve terminates below wNOM amount input");
+        
         return  f64ToTok(
             ABDKMath64x64.pow(
                 ABDKMath64x64.div(
@@ -81,6 +91,10 @@ contract BondingNOM is Ownable {
     /// @param price F64(Fixed Point 64) formated amount
     /// @notice Formula: `_suppliedNom = sqrt(ETH/NOM) * a`  Using this function, everyone can predict the exact token supply base on token price
     function supplyAtPrice(uint256 price) public view returns (uint256) {
+        if (price == 0) return 0;
+
+        require(price <= 10**18, "Bonding Curve terminates below ETH/wNOM price input");
+        
         return f64ToTok(
             ABDKMath64x64.mul(
                 ABDKMath64x64.sqrt(
@@ -100,7 +114,10 @@ contract BondingNOM is Ownable {
     function NOMSupToETH(uint256 supplyTop, uint256 supplyBot) public view returns(uint256) {
         if (supplyTop - supplyBot == 0) return 0;
 
-        require(supplyTop > supplyBot, "Supply Top is not greater than Supply Bot");
+        require(supplyTop > supplyBot, "Supply Bot greater than Supply Top");
+        require(supplyTop <= a, "Supply Top greater than initial supply of wNOM");
+        require(supplyTop.sub(supplyBot) <= a.sub(supplyNOM), "Request greater than the bonded supply of wNOM");
+
         return f64ToTok(
             ABDKMath64x64.mul(
                 // a/3
@@ -144,6 +161,8 @@ contract BondingNOM is Ownable {
     /// uint256: amount of ETH needed in Wei or ETH 18 decimal
     function buyQuoteNOM(uint256 amountNOM) public view returns(uint256) {
         if (amountNOM == 0) return 0;
+        
+        require(amountNOM <= a.sub(supplyNOM), "Sell amount of wNOM greater than unbonded amount of wNOM");
 
         uint256 supplyTop = supplyNOM.add(amountNOM);
         uint256 amountETH = NOMSupToETH(supplyTop, supplyNOM);
@@ -212,6 +231,9 @@ contract BondingNOM is Ownable {
                 )
 
             );
+        
+        require(supplyTop <= a, "Supply Top greater than initial supply");
+
         return supplyTop - supplyNOM;
     }
 
@@ -222,7 +244,9 @@ contract BondingNOM is Ownable {
     /// @param estAmountNOM amount of NOM
     /// @param allowSlip amount of slippage allowed in 0100 means 1%
     function buyNOM(uint256 estAmountNOM, uint256 allowSlip) public payable {
-        require(msg.value > 0, "No ETH");
+        require(msg.value > 0, "Amount ETH sent with request equal to zero");
+        require(estAmountNOM <= (a.sub(supplyNOM)), "Estimated amount of wNOM greater bonded supply of wNOM");
+
         uint256 amountNOM = buyQuoteETH(msg.value);
 
         // Positive slippage is bad.  Negative slippage is good.
@@ -260,6 +284,8 @@ contract BondingNOM is Ownable {
     function sellQuoteNOM(uint256 amountNOM) public view returns(uint256) {
         if (amountNOM == 0) return 0;
         
+        require(amountNOM <= (supplyNOM - burnedNOM()), "Sell amount of wNOM greater than unbonded amount of wNOM");
+        
         uint256 supplyBot = supplyNOM.sub(amountNOM);
         uint256 amountETH = NOMSupToETH(supplyNOM, supplyBot);
         return amountETH.sub(amountETH.div(100));
@@ -271,8 +297,9 @@ contract BondingNOM is Ownable {
     /// 1% would be uint256 representation of 0100, 1.25% would be 0125, 25.5% would be 2550
     /// @notice Transfer ETH worth amount of NOM to msg.sender
     function sellNOM(uint256 amountNOM, uint256 estAmountETH, uint256 allowSlip) public payable {
-        require(amountNOM <= supplyNOM, "Amount greater than outstanding supply");
-        require(amountNOM <= nc.allowance(msg.sender, address(this)), "sender has not enough allowance");
+        require(amountNOM > 0, "Sell amount of wNOM equal to zero");
+        require(amountNOM <= (supplyNOM - burnedNOM()), "Sell amount of wNOM greater than unbonded amount of wNOM");
+        require(amountNOM <= nc.allowance(msg.sender, address(this)), "Insufficient Bond Contract wNOM allowance");
 
         uint256 amountETH = sellQuoteNOM(amountNOM);
 
@@ -310,8 +337,7 @@ contract BondingNOM is Ownable {
             return address(this).balance;
         }
 
-        uint256 burnedNOM = a.sub(nc.totalSupply());
-        uint256 lockedETH = NOMSupToETH(supplyNOM, burnedNOM);
+        uint256 lockedETH = NOMSupToETH(supplyNOM, burnedNOM());
         return address(this).balance.sub(lockedETH);
     }
 
@@ -322,14 +348,13 @@ contract BondingNOM is Ownable {
             payable(msg.sender).transfer(address(this).balance);
             return true;
         }
-        uint256 burnedNOM = a.sub(nc.totalSupply());
-        uint256 lockedETH = NOMSupToETH(supplyNOM, burnedNOM);
+        
+        uint256 lockedETH = NOMSupToETH(supplyNOM, burnedNOM());
         uint256 paymentETH = address(this).balance.sub(lockedETH);
         // Transfer ETH to Owner
         payable(msg.sender).transfer(paymentETH);
         return true;
     }
-
 }
 
 
