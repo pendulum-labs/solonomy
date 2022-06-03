@@ -9,3 +9,7 @@ node_modules
 #Hardhat files
 cache
 artifacts
+
+# IDE files
+/.idea/
+

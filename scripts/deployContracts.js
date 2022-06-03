@@ -7,98 +7,110 @@ const hre = require("hardhat");
 const fs = require('fs');
 
 function timeout(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile 
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
+    // Hardhat always runs the compile task when running scripts with its command
+    // line interface.
+    //
+    // If this script is run directly using `node` you may want to call compile
+    // manually to make sure everything is compiled
+    // await hre.run('compile');
 
-  // We get the contract to deploy
+    // We get the contract to deploy
 
-  const { ethers } = hre;
+    const {ethers} = hre;
 
-  const NOMtokenFactory = await ethers.getContractFactory("ERC20NOM");
-  const NOMtoken = await NOMtokenFactory.deploy();
+    const BNOMtokenFactory = await ethers.getContractFactory("ERC20BNOM");
+    const BNOMtoken = await BNOMtokenFactory.deploy();
 
-  await NOMtoken.deployed();
+    await BNOMtoken.deployed();
 
-  console.log('\n*************************************************************************\n')
-  console.log(`NOM ERC20 Contract Address: ${NOMtoken.address}`)
-  console.log('\n*************************************************************************\n')
+    console.log('\n*************************************************************************\n')
+    console.log(`BNOM ERC20 Contract Address: ${BNOMtoken.address}`)
+    console.log('\n*************************************************************************\n')
 
-  /**
-  await deployer.deploy(Gravity, NOMtoken.address);
-  const gBridge = await Gravity.deployed()
-  console.log('\n*************************************************************************\n')
-  console.log(`Onomy-Gravity Bridge Contract Address: ${gBridge.address}`)
-  console.log('\n*************************************************************************\n')
-   */
+    /**
+     await deployer.deploy(Gravity, BNOMtoken.address);
+     const gBridge = await Gravity.deployed()
+     console.log('\n*************************************************************************\n')
+     console.log(`Onomy-Gravity Bridge Contract Address: ${gBridge.address}`)
+     console.log('\n*************************************************************************\n')
+     */
 
-  const BondNOMFactory = await ethers.getContractFactory("BondingNOM");
-  const BondingNOM = await BondNOMFactory.deploy(NOMtoken.address);
+    const BondNOMFactory = await ethers.getContractFactory("BondingNOM");
+    const BondingNOM = await BondNOMFactory.deploy(BNOMtoken.address);
 
-  await BondingNOM.deployed();
+    await BondingNOM.deployed();
 
-  let numTokens = ethers.BigNumber.from(10).pow(18).mul('100000000')
-  await NOMtoken.transfer(BondingNOM.address, numTokens.toString());
-  let balance = await NOMtoken.balanceOf(BondingNOM.address)
-  
-  do {
-    console.log("NOM Bonding Curve Contract Balance: ", balance.toString())
-    await timeout(5000)
-    balance = await NOMtoken.balanceOf(BondingNOM.address)
-  } while (balance !=  10**18*100000000)
-  
-  console.log('\n*************************************************************************\n')
-  console.log(`NOM Bonding Contract Address: ${BondingNOM.address}`)
-  console.log(`NOM Bonding Contract NOM Balance: ${balance}`)
-  console.log('\n*************************************************************************\n')
+    let numTokens = ethers.BigNumber.from(10).pow(18).mul('100000000')
+    await BNOMtoken.transfer(BondingNOM.address, numTokens.toString());
+    let balance = await BNOMtoken.balanceOf(BondingNOM.address)
 
-  const contAddrs = {
-    NOMERC20: NOMtoken.address,
-    BondingNOM: BondingNOM.address
-  }
+    do {
+        console.log("BNOM Bonding Curve Contract Balance: ", balance.toString())
+        await timeout(5000)
+        balance = await BNOMtoken.balanceOf(BondingNOM.address)
+    } while (balance != 10 ** 18 * 100000000)
 
-  const contAddrsJSON = JSON.stringify(contAddrs)
-  console.log("Contract Addresses: ", contAddrsJSON)
+    console.log('\n*************************************************************************\n')
+    console.log(`BNOM Bonding Contract Address: ${BondingNOM.address}`)
+    console.log(`BNOM Bonding Contract BNOM Balance: ${balance}`)
+    console.log('\n*************************************************************************\n')
 
-  console.log('\n***************************Verifying Contracts**************************\n')
-  await hre.run("verify:verify", {
-    address: NOMtoken.address,
-    constructorArguments: [],
-  })
+    const contAddrs = {
+        BNOMERC20: BNOMtoken.address,
+        BondingNOM: BondingNOM.address
+    }
 
-  await hre.run("verify:verify", {
-    address: BondingNOM.address,
-    constructorArguments: [
-      NOMtoken.address
-    ],
-  })
-  console.log('\n*************************~Successfully Verified~*************************\n')
+    const contAddrsJSON = JSON.stringify(contAddrs)
+    console.log("Contract Addresses: ", contAddrsJSON)
 
-  fs.writeFileSync('./NOMAddrs.json', contAddrsJSON)
+    console.log('\n***************************Verifying Contracts**************************\n')
 
-  fs.writeFileSync('../otrust/src/context/chain/NOMAddrs.json', contAddrsJSON)
+    try {
+        await hre.run("verify:verify", {
+            address: BNOMtoken.address,
+            constructorArguments: [],
+        })
+    } catch (err) {
+        if (err.message.includes("Reason: Already Verified")) {
+            console.log("Contract is already verified!");
+        }
+    }
 
-  fs.copyFileSync('./artifacts/contracts/BondingNOM.sol/BondingNOM.json', '../otrust/src/context/chain/BondingNOM.json')
+    try {
+        await hre.run("verify:verify", {
+            address: BondingNOM.address,
+            constructorArguments: [
+                BNOMtoken.address
+            ],
+        })
+    } catch (err) {
+        if (err.message.includes("Reason: Already Verified")) {
+            console.log("Contract is already verified!");
+        }
+    }
 
-  fs.copyFileSync('./artifacts/contracts/ERC20NOM.sol/ERC20NOM.json', '../otrust/src/context/chain/ERC20NOM.json')
+    console.log('\n*************************~Successfully Verified~*************************\n')
 
-  console.log('\n\n*************************************************************************\n')
-  console.log(`Contract address saved to json`)
-  console.log('\n*************************************************************************\n');
+    fs.writeFileSync('compiled/chain-' + hre.network.name + '-NOMAddrs.json', contAddrsJSON)
+
+    fs.copyFileSync('./artifacts/contracts/BondingNOM.sol/BondingNOM.json', 'compiled/BondingNOM.json')
+
+    fs.copyFileSync('./artifacts/contracts/ERC20BNOM.sol/ERC20BNOM.json', 'compiled/ERC20BNOM.json')
+
+    console.log('\n\n*************************************************************************\n')
+    console.log(`Contract address saved to json`)
+    console.log('\n*************************************************************************\n');
 }
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main()
-  .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error);
-    process.exit(1);
-  });
+    .then(() => process.exit(0))
+    .catch(error => {
+        console.error(error);
+        process.exit(1);
+    });

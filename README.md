@@ -9,6 +9,6 @@ Hardhat is used to manage smart contract deployment and testing.
 
 ## Available Scripts
 - `yarn test` : Test scripts will be executed from `/test`
-- `yarn deploy:${network}` : Available networks `mainnet`, `rinkeyby`, `localhost`. For custom network it's configurable on `hardhat.config.js`  Deploy Script will automatically verify the contract
+- `yarn deploy:${network}` : Available networks `mainnet`, `rinkeyby`, `goerli`, `localhost`. For custom network it's configurable on `hardhat.config.js`  Deploy Script will automatically verify the contract
 - `yarn compile` : Compile the contracts from `/contracts`
 - `yarn run-node` : Running a node instance on the local network. We use this to obeserving the events and transactions.

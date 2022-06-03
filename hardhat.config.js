@@ -44,6 +44,13 @@ module.exports = {
         mnemonic: mnemonic,
       }
     },
+    goerli: {
+      url: 'https://goerli.infura.io/v3/a9087b23250f4140b83f7cb3682cf30b',
+      chainID: 5, // goerli's id
+      accounts: {
+        mnemonic: mnemonic,
+      }
+    },
     hardhat: {
       // @note Uncomment the below codes to fork the mainnet to localnetwork
       //       While testing on the mainnet forked network we can interact with other contracts
