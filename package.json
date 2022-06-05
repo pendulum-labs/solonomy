@@ -30,6 +30,7 @@
     "deploy:local": "hardhat run ./scripts/deployContracts.js --network localhost",
     "deploy:mainnet": "hardhat run ./scripts/deployContracts.js --network mainnet",
     "deploy:rinkeby": "hardhat run ./scripts/deployContracts.js --network rinkeby",
+    "deploy:goerli": "hardhat run ./scripts/deployContracts.js --network goerli",
     "test": "hardhat test --network hardhat"
   },
   "repository": {

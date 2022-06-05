@@ -10,7 +10,7 @@ describe("Bonding Curve Tests", function () {
   before(async function () {
     accounts = await ethers.getSigners();
     // Get the ContractFactory and Signers here.
-    const NOMtokenFactory = await ethers.getContractFactory("ERC20NOM");
+    const NOMtokenFactory = await ethers.getContractFactory("ERC20BNOM");
     NOMtoken = await NOMtokenFactory.deploy();
 
     await NOMtoken.deployed();
@@ -40,7 +40,7 @@ describe("Bonding Curve Tests", function () {
     console.log('\n*************************************************************************\n')
 
     contAddrs = {
-      NOMERC20: NOMtoken.address,
+      BNOMERC20: NOMtoken.address,
       BondingNOM: BondingNOM.address
     }
   });
