@@ -61,7 +61,7 @@ contract BondingNOM is Ownable {
         return ABDKMath64x64.mulu(fixed64, 10**uint256(decimals));
     }
 
-    /// @return Return the amount of burned bNOM
+    /// @return Return the amount of burned bNOM.
     /// @notice Formula: totalSupply[initial] - totalSupply[now]
     function burnedNOM() public view returns(uint256) {
         return  a.sub(nc.totalSupply());

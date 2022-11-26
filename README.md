@@ -27,7 +27,7 @@ Hardhat is used to manage smart contract deployment and testing.
 
 * Run the command 
 ```
-NOVERIFICATION=true NOBYTECODE=false hardhat run ./scripts/deployContracts.js --network mainnet
+NOVERIFICATION=true NOBYTECODE=false yarn hardhat run ./scripts/deployContracts.js --network mainnet
 ```
 
 The command will deploy the bytecode of both of the contract to the mainnet and will save the addresses in the `compiled`
@@ -43,7 +43,7 @@ folder.
 
 * Run the command
 ```
-NOVERIFICATION=false NOBYTECODE=true hardhat run ./scripts/deployContracts.js --network mainnet
+NOVERIFICATION=false NOBYTECODE=true yarn hardhat run ./scripts/deployContracts.js --network mainnet
 ```
 
 * Open the Etherscan and check that contracts are present, and you can Read or Write.
