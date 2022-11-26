@@ -11,6 +11,7 @@ function timeout(ms) {
 }
 
 async function main() {
+    
     // Hardhat always runs the compile task when running scripts with its command
     // line interface.
     //
