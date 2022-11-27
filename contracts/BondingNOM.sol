@@ -24,6 +24,7 @@ contract BondingNOM is Ownable {
     uint256 public priceBondCurve = 0;
     uint8 public decimals = 18;
     uint256 public a = SafeMath.mul(100000000, 10**decimals);
+    bool public tradingEnabled = false;
 
     event Transaction(address indexed _by, uint256 amountNOM, uint256 amountETH, uint256 price, uint256 supply, string buyOrSell, int256 slippage);
 
@@ -31,6 +32,11 @@ contract BondingNOM is Ownable {
         // Add in the NOM ERC20 contract address
         NOMTokenContract = NOMContAddr;
         nc = ERC20Token(NOMContAddr);
+    }
+
+    /// @return Return the bool value which indicates whether the trading is enabled.
+    function getTradingEnabled() public view returns (bool) {
+        return tradingEnabled;
     }
 
     /// @notice Return the NOM Token Contract address
@@ -243,6 +249,7 @@ contract BondingNOM is Ownable {
     /// @param estAmountNOM amount of NOM
     /// @param allowSlip amount of slippage allowed in 0100 means 1%
     function buyNOM(uint256 estAmountNOM, uint256 allowSlip) public payable {
+        require(tradingEnabled, "The trading is disabled");
         require(msg.value > 0, "Amount ETH sent with request equal to zero");
         require(estAmountNOM <= (a.sub(supplyNOM)), "Estimated amount of bNOM greater bonded supply of bNOM");
 
@@ -273,7 +280,6 @@ contract BondingNOM is Ownable {
 
         emit Transaction(msg.sender, amountNOM, msg.value, priceBondCurve, supplyNOM, "buy", slippage);
     }
-
 
     /// @param amountNOM amount of NOM
     /// @return Return Sell Quote: NOM for ETH (Dec 18)
@@ -354,6 +360,12 @@ contract BondingNOM is Ownable {
         payable(msg.sender).transfer(paymentETH);
         return true;
     }
+
+    /// @notice Enables trading.
+    function enableTrading() public onlyOwner {
+        tradingEnabled = true;
+    }
+
 }
 
 

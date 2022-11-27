@@ -39,6 +39,14 @@ describe("Bonding Curve Tests", function () {
     console.log(`NOM Bonding Contract NOM Balance: ${balance}`)
     console.log('\n*************************************************************************\n')
 
+    // the trading is disabled by default
+    let tradingEnabled = await BondingNOM.getTradingEnabled()
+    assert.equal(false, tradingEnabled);
+    // enable trading
+    await BondingNOM.enableTrading()
+    tradingEnabled = await BondingNOM.getTradingEnabled()
+    assert.equal(true, tradingEnabled);
+
     contAddrs = {
       BNOMERC20: NOMtoken.address,
       BondingNOM: BondingNOM.address
